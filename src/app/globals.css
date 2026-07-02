@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+/* ============================================================
+   EDINUN STEAM — Sistema de diseño (dossier EDINUN Conecta)
+   Marca única: acento #F69E26 · navy #151E29 · fondo #f0f4f8
+   ============================================================ */
+
+@theme {
+  --color-primary-dark: #151e29;
+  --color-accent: #f69e26;
+  --color-accent-hover: #e08d1a;
+  --color-background: #f0f4f8;
+  --color-foreground: #151e29;
+}
+
+:root {
+  /* Marca */
+  --background: #f0f4f8;
+  --foreground: #151e29;
+  --primary-dark: #151e29;
+  --accent: #f69e26;
+  --accent-hover: #e08d1a;
+  --text-light: #ffffff;
+  --font-poppins: "Poppins", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+
+  /* Estados — Error */
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-error-bg: rgba(239, 68, 68, 0.08);
+  --color-error-bg-hover: rgba(239, 68, 68, 0.12);
+  --color-error-border: rgba(239, 68, 68, 0.15);
+
+  /* Estados — Success */
+  --color-success: #22c55e;
+  --color-success-hover: #16a34a;
+  --color-success-bg: rgba(34, 197, 94, 0.08);
+  --color-success-border: rgba(34, 197, 94, 0.2);
+
+  /* Estados — Warning */
+  --color-warning-bg: rgba(251, 191, 36, 0.06);
+  --color-warning-border: rgba(251, 191, 36, 0.12);
+  --color-warning-text: rgba(251, 191, 36, 0.8);
+
+  /* Textos sobre superficie clara (navy con alpha) */
+  --text-primary: #151e29;
+  --text-muted: rgba(21, 30, 41, 0.55);
+  --text-subtle: rgba(21, 30, 41, 0.45);
+  --text-hint: rgba(21, 30, 41, 0.35);
+  --text-placeholder: rgba(21, 30, 41, 0.2);
+
+  /* Textos sobre superficie oscura (blanco con alpha) */
+  --text-dark-primary: #fff;
+  --text-dark-muted: rgba(255, 255, 255, 0.5);
+  --text-dark-subtle: rgba(255, 255, 255, 0.4);
+  --text-dark-hint: rgba(255, 255, 255, 0.3);
+
+  /* Bordes */
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-light-md: rgba(0, 0, 0, 0.1);
+  --border-light-strong: rgba(0, 0, 0, 0.12);
+  --border-dark: rgba(255, 255, 255, 0.06);
+  --border-dark-md: rgba(255, 255, 255, 0.1);
+  --border-dark-strong: rgba(255, 255, 255, 0.15);
+
+  /* Surfaces */
+  --surface-hover-light: rgba(0, 0, 0, 0.04);
+  --surface-hover-dark: rgba(255, 255, 255, 0.06);
+  --surface-input-dark: rgba(255, 255, 255, 0.04);
+  --surface-subtle-light: #fafafa;
+  --surface-bg-light: #f8f9fa;
+
+  /* Modales */
+  --modal-overlay-dark: rgba(21, 30, 41, 0.75);
+  --modal-shadow-dark: 0 25px 60px rgba(0, 0, 0, 0.5);
+  --modal-shadow-light: 0 20px 60px rgba(0, 0, 0, 0.2);
+
+  /* Acento derivado */
+  --accent-bg: rgba(246, 158, 38, 0.1);
+  --accent-bg-subtle: rgba(246, 158, 38, 0.06);
+  --accent-bg-hover: rgba(246, 158, 38, 0.15);
+  --accent-border: rgba(246, 158, 38, 0.2);
+  --accent-border-strong: rgba(246, 158, 38, 0.3);
+  --accent-shadow: rgba(246, 158, 38, 0.25);
+
+  /* Escala de espaciado áurea (φ = 1.618): 8, 13, 21, 34, 55, 89 px */
+  --space-xs: 0.5rem;
+  --space-sm: 0.809rem;
+  --space-md: 1.309rem;
+  --space-lg: 2.118rem;
+  --space-xl: 3.427rem;
+  --space-2xl: 5.545rem;
+  --section-padding-y: 5rem;
+  --section-padding-x: 2.5rem;
+  --container-padding: 1.618rem;
+
+  /* Radios */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-pill: 9999px;
+
+  /* Scrollbar */
+  --scrollbar-light-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-light-hover: rgba(0, 0, 0, 0.25);
+  --scrollbar-dark-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-dark-hover: rgba(255, 255, 255, 0.25);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-poppins);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Efectos de marca */
+.glass {
+  background: rgba(21, 30, 41, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent) 0%, #ffb347 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar de marca */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--primary-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+
+/* Feedback inline (patrón EDINUN: banner verde/oxide, nada de toasts) */
+.banner-exito {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-hover);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.banner-error {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-hover);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+}

@@ -17,3 +17,6 @@
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# PDFs del Mineduc (41MB, publicos): se colocan localmente para regenerar el seed
+curriculo Ecuador/

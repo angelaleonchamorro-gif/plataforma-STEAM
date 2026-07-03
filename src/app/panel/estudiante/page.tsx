@@ -1,8 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// Portal del estudiante: sus clases y, dentro de cada una, las actividades
-// publicadas del proyecto.
+// Portal del estudiante: sus clases.
 export default async function EstudiantePage() {
   const supabase = await createClient();
   const {
@@ -49,23 +49,23 @@ export default async function EstudiantePage() {
       ) : (
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {clases.map((clase) => (
-            <div
+            <Link
               key={clase.id}
-              className="rounded-2xl bg-white p-6"
-              style={{ border: "1px solid var(--border-light)" }}
+              href={`/panel/estudiante/clases/${clase.id}`}
+              className="rounded-2xl bg-white p-6 transition hover:-translate-y-1"
+              style={{ border: "1px solid var(--border-light)", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}
             >
               <h2 className="font-semibold">{clase.nombre}</h2>
               <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
                 {clase.grado}
               </p>
-            </div>
+              <p className="mt-3 text-sm font-semibold" style={{ color: "var(--accent-hover)" }}>
+                Ver proyectos →
+              </p>
+            </Link>
           ))}
         </div>
       )}
-
-      <p className="mt-8 text-sm" style={{ color: "var(--text-subtle)" }}>
-        Las actividades del proyecto aparecerán aquí cuando tu docente las publique.
-      </p>
     </main>
   );
 }

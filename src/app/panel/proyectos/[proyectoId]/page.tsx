@@ -89,9 +89,18 @@ export default async function ProyectoPage({
       >
         ← {clase.nombre}
       </Link>
-      <h1 className="mt-2 text-3xl font-bold">
-        {proyecto.titulo ?? "Nuevo proyecto STEAM"}
-      </h1>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold">{proyecto.titulo ?? "Nuevo proyecto STEAM"}</h1>
+        {(proyecto.estado === "en_ejecucion" || proyecto.estado === "finalizado") && (
+          <Link
+            href={`/panel/proyectos/${proyecto.id}/seguimiento`}
+            className="rounded-full px-5 py-2 text-sm font-semibold text-[#151E29] transition hover:brightness-95"
+            style={{ background: "var(--accent)" }}
+          >
+            📊 Ver seguimiento
+          </Link>
+        )}
+      </div>
       <p className="mt-1" style={{ color: "var(--text-muted)" }}>
         {clase.grado} · {proyecto.duracion_semanas} semanas
       </p>

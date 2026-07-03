@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { subnivelDeGrado } from "@/lib/curriculo";
 import DefinicionProyecto from "./DefinicionProyecto";
+import PlanificacionProyecto from "./PlanificacionProyecto";
 
 export default async function ProyectoPage({
   params,
@@ -33,21 +34,38 @@ export default async function ProyectoPage({
   const subnivel = subnivelDeGrado(clase.grado);
   if (!subnivel) redirect(`/panel/clases/${clase.id}`);
 
-  // Asignaturas habilitadas por la institución + todas las DCD del subnivel.
-  const [{ data: habilitadas }, { data: asignaturas }, { data: destrezas }, { data: seleccion }] =
-    await Promise.all([
-      supabase
-        .from("institucion_asignaturas")
-        .select("asignatura_id")
-        .eq("institucion_id", clase.institucion_id),
-      supabase.from("asignaturas").select("id, codigo, nombre, es_principal"),
-      supabase
-        .from("dcd")
-        .select("id, asignatura_id, codigo, descripcion")
-        .eq("subnivel", subnivel)
-        .order("codigo"),
-      supabase.from("proyecto_dcd").select("dcd_id, es_conexion").eq("proyecto_id", proyecto.id),
-    ]);
+  // Asignaturas habilitadas por la institución + todas las DCD del subnivel
+  // + planificación y actividades existentes.
+  const [
+    { data: habilitadas },
+    { data: asignaturas },
+    { data: destrezas },
+    { data: seleccion },
+    { data: semanas },
+    { data: actividades },
+  ] = await Promise.all([
+    supabase
+      .from("institucion_asignaturas")
+      .select("asignatura_id")
+      .eq("institucion_id", clase.institucion_id),
+    supabase.from("asignaturas").select("id, codigo, nombre, es_principal"),
+    supabase
+      .from("dcd")
+      .select("id, asignatura_id, codigo, descripcion")
+      .eq("subnivel", subnivel)
+      .order("codigo"),
+    supabase.from("proyecto_dcd").select("dcd_id, es_conexion").eq("proyecto_id", proyecto.id),
+    supabase
+      .from("planificacion_semanas")
+      .select("id, numero_semana, fase, objetivo, descripcion")
+      .eq("proyecto_id", proyecto.id)
+      .order("numero_semana"),
+    supabase
+      .from("actividades")
+      .select("id, semana_id, fase, dcd_id, titulo, instrucciones, criterio_evaluacion, publicada, generada_por_ia")
+      .eq("proyecto_id", proyecto.id)
+      .order("orden"),
+  ]);
 
   const idsHabilitadas = new Set((habilitadas ?? []).map((h) => h.asignatura_id));
   const idsConDestrezas = new Set((destrezas ?? []).map((d) => d.asignatura_id));
@@ -91,6 +109,15 @@ export default async function ProyectoPage({
           dcdId: s.dcd_id,
           esConexion: s.es_conexion,
         }))}
+      />
+
+      <PlanificacionProyecto
+        proyectoId={proyecto.id}
+        estado={proyecto.estado}
+        temaDefinido={Boolean(proyecto.titulo && proyecto.reto)}
+        semanas={semanas ?? []}
+        actividades={actividades ?? []}
+        codigosDcd={Object.fromEntries((destrezas ?? []).map((d) => [d.id, d.codigo]))}
       />
     </main>
   );

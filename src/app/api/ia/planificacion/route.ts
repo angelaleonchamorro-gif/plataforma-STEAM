@@ -6,6 +6,9 @@ import { generarPlanificacion, MODELO_IA, type ContextoProyecto } from "@/lib/ia
 
 const esquema = z.object({ proyectoId: z.string().uuid() });
 
+// La generación con Groq puede tardar; ampliar el límite del serverless de Vercel.
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -45,6 +48,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { mensaje: "Solo el docente del proyecto puede generar la planificación." },
       { status: 403 },
+    );
+  }
+
+  // Evitar duplicados: si ya existe planificación, no se regenera encima.
+  const { count: semanasExistentes } = await supabase
+    .from("planificacion_semanas")
+    .select("id", { count: "exact", head: true })
+    .eq("proyecto_id", proyecto.id);
+  if ((semanasExistentes ?? 0) > 0) {
+    return NextResponse.json(
+      { mensaje: "Este proyecto ya tiene una planificación generada." },
+      { status: 409 },
     );
   }
 

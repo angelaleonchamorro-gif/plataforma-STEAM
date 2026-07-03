@@ -6,6 +6,9 @@ import { sugerirTemas, MODELO_IA, type ContextoProyecto } from "@/lib/ia/groq";
 
 const esquema = z.object({ proyectoId: z.string().uuid() });
 
+// La generación con Groq puede tardar; ampliar el límite del serverless de Vercel.
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {

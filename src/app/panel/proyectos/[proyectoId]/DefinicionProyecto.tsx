@@ -420,17 +420,6 @@ export default function DefinicionProyecto({
         )}
       </section>
 
-      {/* ---------- PASO 3 (próximamente) ---------- */}
-      <section>
-        <h2 className="text-xl font-bold" style={{ color: "var(--text-subtle)" }}>
-          3. Planificación semanal y actividades
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: "var(--text-subtle)" }}>
-          {temaDefinido
-            ? "Disponible en la siguiente actualización: la IA generará el cronograma completo con las actividades de cada fase."
-            : "Se habilita cuando el proyecto tenga tema y reto definidos."}
-        </p>
-      </section>
     </div>
   );
 }

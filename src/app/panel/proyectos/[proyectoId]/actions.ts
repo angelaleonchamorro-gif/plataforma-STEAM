@@ -91,3 +91,99 @@ export async function elegirTema(datos: z.infer<typeof esquemaTema>) {
   revalidatePath(`/panel/proyectos/${proyecto.id}`);
   return { ok: true as const };
 }
+
+// ---------- Actividades de la planificación ----------
+
+async function verificarDocenteDeActividad(actividadId: string) {
+  const supabase = await createClient();
+  const { data: actividad } = await supabase
+    .from("actividades")
+    .select("id, proyecto_id")
+    .eq("id", actividadId)
+    .maybeSingle();
+  if (!actividad) return { error: "Actividad no encontrada." as const };
+
+  const contexto = await verificarDocenteDeProyecto(actividad.proyecto_id);
+  if ("error" in contexto) return { error: contexto.error };
+  return { supabase, actividad, proyectoId: actividad.proyecto_id };
+}
+
+const esquemaActividad = z.object({
+  actividadId: z.string().uuid(),
+  titulo: z.string().min(3).max(200),
+  instrucciones: z.string().min(10).max(4000),
+  criterioEvaluacion: z.string().max(2000).nullable(),
+});
+
+export async function actualizarActividad(datos: z.infer<typeof esquemaActividad>) {
+  const validacion = esquemaActividad.safeParse(datos);
+  if (!validacion.success) return { error: "Revisa el título y las instrucciones." };
+
+  const contexto = await verificarDocenteDeActividad(validacion.data.actividadId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, actividad, proyectoId } = contexto;
+
+  const { error } = await supabase
+    .from("actividades")
+    .update({
+      titulo: validacion.data.titulo,
+      instrucciones: validacion.data.instrucciones,
+      criterio_evaluacion: validacion.data.criterioEvaluacion,
+      generada_por_ia: false, // el docente la hizo suya al editarla
+    })
+    .eq("id", actividad.id);
+  if (error) return { error: "No se pudo guardar la actividad." };
+
+  revalidatePath(`/panel/proyectos/${proyectoId}`);
+  return { ok: true as const };
+}
+
+export async function eliminarActividad(actividadId: string) {
+  const contexto = await verificarDocenteDeActividad(actividadId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, actividad, proyectoId } = contexto;
+
+  const { error } = await supabase.from("actividades").delete().eq("id", actividad.id);
+  if (error) return { error: "No se pudo eliminar la actividad." };
+
+  revalidatePath(`/panel/proyectos/${proyectoId}`);
+  return { ok: true as const };
+}
+
+export async function alternarPublicacion(actividadId: string, publicada: boolean) {
+  const contexto = await verificarDocenteDeActividad(actividadId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, actividad, proyectoId } = contexto;
+
+  const { error } = await supabase
+    .from("actividades")
+    .update({ publicada })
+    .eq("id", actividad.id);
+  if (error) return { error: "No se pudo cambiar la publicación." };
+
+  revalidatePath(`/panel/proyectos/${proyectoId}`);
+  return { ok: true as const };
+}
+
+export async function publicarTodas(proyectoId: string) {
+  const contexto = await verificarDocenteDeProyecto(proyectoId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, proyecto } = contexto;
+
+  const { error } = await supabase
+    .from("actividades")
+    .update({ publicada: true })
+    .eq("proyecto_id", proyecto.id);
+  if (error) return { error: "No se pudieron publicar las actividades." };
+
+  // El proyecto pasa a ejecución; la fecha de inicio solo se fija la primera vez.
+  await supabase.from("proyectos").update({ estado: "en_ejecucion" }).eq("id", proyecto.id);
+  await supabase
+    .from("proyectos")
+    .update({ fecha_inicio: new Date().toISOString().slice(0, 10) })
+    .eq("id", proyecto.id)
+    .is("fecha_inicio", null);
+
+  revalidatePath(`/panel/proyectos/${proyecto.id}`);
+  return { ok: true as const };
+}

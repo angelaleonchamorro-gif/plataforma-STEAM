@@ -390,6 +390,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      articulos_cientificos: {
+        Row: {
+          id: string;
+          proyecto_id: string;
+          estudiante_id: string;
+          secciones: Json;
+          estado: Database["public"]["Enums"]["estado_entrega"];
+          entregado_at: string | null;
+          retroalimentacion: string | null;
+          calificacion: number | null;
+          revisado_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          proyecto_id: string;
+          estudiante_id: string;
+          secciones?: Json;
+          estado?: Database["public"]["Enums"]["estado_entrega"];
+          entregado_at?: string | null;
+          retroalimentacion?: string | null;
+          calificacion?: number | null;
+          revisado_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          proyecto_id?: string;
+          estudiante_id?: string;
+          secciones?: Json;
+          estado?: Database["public"]["Enums"]["estado_entrega"];
+          entregado_at?: string | null;
+          retroalimentacion?: string | null;
+          calificacion?: number | null;
+          revisado_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       generaciones_ia: {
         Row: {
           id: string;

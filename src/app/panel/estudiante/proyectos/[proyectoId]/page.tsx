@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FASES_PROYECTO } from "@/types/database";
+import { subnivelDeGrado } from "@/lib/curriculo";
 import EntregaActividad from "./EntregaActividad";
 
 export default async function ProyectoEstudiantePage({
@@ -25,6 +26,13 @@ export default async function ProyectoEstudiantePage({
   if (!proyecto || proyecto.estado === "definicion" || proyecto.estado === "planificacion") {
     redirect("/panel/estudiante");
   }
+
+  const { data: clase } = await supabase
+    .from("clases")
+    .select("grado")
+    .eq("id", proyecto.clase_id)
+    .maybeSingle();
+  const esBachillerato = clase ? subnivelDeGrado(clase.grado) === "BGU" : false;
 
   // RLS: solo llegan las actividades PUBLICADAS.
   const [{ data: actividades }, { data: entregas }] = await Promise.all([
@@ -82,6 +90,24 @@ export default async function ProyectoEstudiantePage({
       <p className="mt-4 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
         {hechas} de {actividades?.length ?? 0} actividades entregadas
       </p>
+
+      {esBachillerato && (
+        <Link
+          href={`/panel/estudiante/proyectos/${proyecto.id}/articulo`}
+          className="mt-4 flex items-center justify-between rounded-2xl p-5 transition hover:-translate-y-0.5"
+          style={{ background: "var(--accent-bg)", border: "1px solid var(--accent-border-strong)" }}
+        >
+          <span>
+            <span className="font-bold">📄 Mi artículo científico</span>
+            <span className="block text-sm" style={{ color: "var(--text-muted)" }}>
+              El producto de divulgación de tu proyecto: redáctalo con la plantilla guiada.
+            </span>
+          </span>
+          <span className="font-bold" style={{ color: "var(--accent-hover)" }}>
+            →
+          </span>
+        </Link>
+      )}
 
       <div className="mt-8 flex flex-col gap-8">
         {FASES_PROYECTO.map((fase, indice) => {

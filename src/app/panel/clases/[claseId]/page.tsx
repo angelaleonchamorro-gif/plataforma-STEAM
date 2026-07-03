@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { crearProyecto } from "../actions";
+import CargaMasiva from "./CargaMasiva";
 
 const ETIQUETA_ESTADO: Record<string, { texto: string; color: string }> = {
   definicion: { texto: "En definición", color: "var(--color-warning-text)" },
@@ -162,6 +163,8 @@ export default async function ClaseDetallePage({
             ))}
           </div>
         )}
+
+        <CargaMasiva claseId={clase.id} />
       </section>
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FASES_PROYECTO, type FaseProyecto } from "@/types/database";
 import {
@@ -8,6 +9,7 @@ import {
   eliminarActividad,
   alternarPublicacion,
   publicarTodas,
+  eliminarPlanificacion,
 } from "./actions";
 
 interface Semana {
@@ -96,6 +98,16 @@ export default function PlanificacionProyecto({
     }
   }
 
+  async function regenerar() {
+    setBanner(null);
+    const resultado = await eliminarPlanificacion(proyectoId);
+    if ("error" in resultado && resultado.error) {
+      setBanner({ tipo: "error", texto: resultado.error });
+      return;
+    }
+    await generarPlanificacion();
+  }
+
   function abrirEdicion(actividad: Actividad) {
     setEditandoId(actividad.id);
     setFormulario({
@@ -143,10 +155,35 @@ export default function PlanificacionProyecto({
           <span style={{ color: "var(--accent-hover)" }}>3.</span> Planificación semanal y actividades
         </h2>
         {hayPlan && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm" style={{ color: "var(--text-muted)" }}>
               {publicadas}/{actividades.length} actividades publicadas
             </span>
+            <Link
+              href={`/panel/proyectos/${proyectoId}/imprimir`}
+              className="rounded-full border px-4 py-2 text-sm font-semibold transition hover:bg-black/5"
+              style={{ borderColor: "var(--border-light-strong)" }}
+            >
+              🖨 Imprimir
+            </Link>
+            {publicadas === 0 && (
+              <button
+                onClick={() => {
+                  if (
+                    confirm(
+                      "¿Regenerar la planificación? Se borrará el borrador actual y la IA creará uno nuevo.",
+                    )
+                  ) {
+                    regenerar();
+                  }
+                }}
+                disabled={pendiente || generando}
+                className="rounded-full border px-4 py-2 text-sm font-semibold transition hover:bg-black/5 disabled:opacity-50"
+                style={{ borderColor: "var(--border-light-strong)" }}
+              >
+                {generando ? "Regenerando…" : "↻ Regenerar con IA"}
+              </button>
+            )}
             {publicadas < actividades.length && (
               <button
                 onClick={() => ejecutar(() => publicarTodas(proyectoId))}

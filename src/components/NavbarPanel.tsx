@@ -27,7 +27,7 @@ export default function NavbarPanel({
   }
 
   return (
-    <nav className="glass sticky top-0 z-50 flex items-center justify-between px-8 py-4">
+    <nav className="glass sticky top-0 z-50 flex items-center justify-between px-8 py-4 print:hidden">
       <Link href="/panel" className="text-lg font-bold text-white">
         EDINUN <span style={{ color: "var(--accent)" }}>STEAM</span>
       </Link>

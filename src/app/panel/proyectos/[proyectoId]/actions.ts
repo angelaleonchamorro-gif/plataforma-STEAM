@@ -165,6 +165,39 @@ export async function alternarPublicacion(actividadId: string, publicada: boolea
   return { ok: true as const };
 }
 
+// Borra la planificación (semanas + actividades) para regenerarla con la IA.
+// Bloqueado si ya existen entregas de estudiantes: se perdería su trabajo.
+export async function eliminarPlanificacion(proyectoId: string) {
+  const contexto = await verificarDocenteDeProyecto(proyectoId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, proyecto } = contexto;
+
+  const { data: actividades } = await supabase
+    .from("actividades")
+    .select("id")
+    .eq("proyecto_id", proyecto.id);
+
+  if (actividades?.length) {
+    const { count } = await supabase
+      .from("entregas")
+      .select("id", { count: "exact", head: true })
+      .in("actividad_id", actividades.map((a) => a.id));
+    if ((count ?? 0) > 0) {
+      return {
+        error:
+          "No se puede regenerar: ya hay entregas de estudiantes en estas actividades. Edita las actividades una a una.",
+      };
+    }
+  }
+
+  await supabase.from("actividades").delete().eq("proyecto_id", proyecto.id);
+  await supabase.from("planificacion_semanas").delete().eq("proyecto_id", proyecto.id);
+  await supabase.from("proyectos").update({ estado: "planificacion" }).eq("id", proyecto.id);
+
+  revalidatePath(`/panel/proyectos/${proyecto.id}`);
+  return { ok: true as const };
+}
+
 export async function publicarTodas(proyectoId: string) {
   const contexto = await verificarDocenteDeProyecto(proyectoId);
   if ("error" in contexto) return { error: contexto.error };

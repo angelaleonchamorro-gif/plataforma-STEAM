@@ -56,3 +56,47 @@ export async function revisarEntrega(datos: z.infer<typeof esquemaRevision>) {
   revalidatePath(`/panel/proyectos/${actividad.proyecto_id}/seguimiento`);
   return { ok: true as const };
 }
+
+const esquemaRevisionArticulo = z.object({
+  articuloId: z.string().uuid(),
+  retroalimentacion: z.string().max(2000),
+  calificacion: z.number().min(0).max(10).nullable(),
+});
+
+export async function revisarArticulo(datos: z.infer<typeof esquemaRevisionArticulo>) {
+  const validacion = esquemaRevisionArticulo.safeParse(datos);
+  if (!validacion.success) return { error: "La calificación debe estar entre 0 y 10." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión expirada. Vuelve a iniciar sesión." };
+
+  const { data: articulo } = await supabase
+    .from("articulos_cientificos")
+    .select("id, proyecto_id")
+    .eq("id", validacion.data.articuloId)
+    .maybeSingle();
+  if (!articulo) return { error: "Artículo no encontrado." };
+
+  const { data: esDocente } = await supabase.rpc("fn_es_docente_de_proyecto", {
+    p_proyecto: articulo.proyecto_id,
+  });
+  if (!esDocente) return { error: "Solo el docente del proyecto puede revisar artículos." };
+
+  const { error } = await supabase
+    .from("articulos_cientificos")
+    .update({
+      estado: "revisada",
+      retroalimentacion: validacion.data.retroalimentacion || null,
+      calificacion: validacion.data.calificacion,
+      revisado_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", articulo.id);
+  if (error) return { error: "No se pudo guardar la revisión." };
+
+  revalidatePath(`/panel/proyectos/${articulo.proyecto_id}/seguimiento`);
+  return { ok: true as const };
+}

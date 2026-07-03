@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FASES_PROYECTO } from "@/types/database";
+import { subnivelDeGrado } from "@/lib/curriculo";
+import type { SeccionesArticulo } from "@/lib/articulo";
 import RevisionEntrega from "./RevisionEntrega";
+import RevisionArticulo from "./RevisionArticulo";
 
 // Tablero de trazabilidad del docente: estado de cada estudiante en cada
 // actividad publicada, con revisión (retroalimentación + calificación).
@@ -27,10 +30,12 @@ export default async function SeguimientoPage({
 
   const { data: clase } = await supabase
     .from("clases")
-    .select("id, nombre, docente_id")
+    .select("id, nombre, grado, docente_id")
     .eq("id", proyecto.clase_id)
     .maybeSingle();
   if (!clase || clase.docente_id !== user.id) redirect("/panel/clases");
+
+  const esBachillerato = subnivelDeGrado(clase.grado) === "BGU";
 
   const [{ data: actividades }, { data: matriculas }] = await Promise.all([
     supabase
@@ -48,6 +53,13 @@ export default async function SeguimientoPage({
         .select("id, nombres, apellidos")
         .in("id", matriculas.map((m) => m.estudiante_id))
         .order("apellidos")
+    : { data: [] };
+
+  const { data: articulos } = esBachillerato
+    ? await supabase
+        .from("articulos_cientificos")
+        .select("id, estudiante_id, secciones, estado, entregado_at, retroalimentacion, calificacion")
+        .eq("proyecto_id", proyecto.id)
     : { data: [] };
 
   const { data: entregas } = actividades?.length
@@ -139,6 +151,15 @@ export default async function SeguimientoPage({
         </div>
       ) : (
         <div className="mt-8 flex flex-col gap-4">
+          {esBachillerato && (
+            <RevisionArticulo
+              estudiantes={estudiantes}
+              articulos={(articulos ?? []).map((a) => ({
+                ...a,
+                secciones: (a.secciones as SeccionesArticulo) ?? {},
+              }))}
+            />
+          )}
           {actividades.map((actividad) => (
             <RevisionEntrega
               key={actividad.id}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { revisarEntrega } from "./actions";
+import { revisarEntrega, revisarEquipo } from "./actions";
 
 interface Estudiante {
   id: string;
@@ -26,6 +26,7 @@ interface Props {
   estudiantes: Estudiante[];
   entregas: Entrega[];
   urlsFirmadas: Record<string, string>; // entregaId → URL firmada de la evidencia
+  equipoPorEstudiante: Record<string, { id: string; nombre: string }>;
 }
 
 const ETIQUETA: Record<string, { texto: string; fondo: string; color: string }> = {
@@ -35,7 +36,13 @@ const ETIQUETA: Record<string, { texto: string; fondo: string; color: string }> 
   revisada: { texto: "Revisada", fondo: "var(--color-success-bg)", color: "var(--color-success-hover)" },
 };
 
-export default function RevisionEntrega({ actividad, estudiantes, entregas, urlsFirmadas }: Props) {
+export default function RevisionEntrega({
+  actividad,
+  estudiantes,
+  entregas,
+  urlsFirmadas,
+  equipoPorEstudiante,
+}: Props) {
   const router = useRouter();
   const [abierta, setAbierta] = useState(false);
   const [revisandoId, setRevisandoId] = useState<string | null>(null);
@@ -66,6 +73,29 @@ export default function RevisionEntrega({ actividad, estudiantes, entregas, urls
         setBanner({ tipo: "error", texto: resultado.error });
       } else {
         setBanner({ tipo: "exito", texto: "Revisión guardada: el estudiante ya puede verla." });
+        setRevisandoId(null);
+        router.refresh();
+      }
+    });
+  }
+
+  function guardarRevisionEquipo(equipoId: string, nombreEquipo: string) {
+    setBanner(null);
+    iniciarGuardado(async () => {
+      const resultado = await revisarEquipo({
+        actividadId: actividad.id,
+        equipoId,
+        retroalimentacion: retro,
+        calificacion: nota === "" ? null : Number(nota),
+      });
+      if ("error" in resultado && resultado.error) {
+        setBanner({ tipo: "error", texto: resultado.error });
+      } else {
+        const n = "integrantes" in resultado ? resultado.integrantes : 0;
+        setBanner({
+          tipo: "exito",
+          texto: `Nota y retroalimentación aplicadas a los ${n} integrantes de ${nombreEquipo}. Puedes ajustar a cualquiera individualmente.`,
+        });
         setRevisandoId(null);
         router.refresh();
       }
@@ -118,6 +148,14 @@ export default function RevisionEntrega({ actividad, estudiantes, entregas, urls
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm font-medium">
                       {estudiante.apellidos} {estudiante.nombres}
+                      {equipoPorEstudiante[estudiante.id] && (
+                        <span
+                          className="ml-2 rounded-full px-2 py-0.5 text-xs font-semibold"
+                          style={{ background: "rgba(139,92,246,0.1)", color: "#7c3aed" }}
+                        >
+                          👥 {equipoPorEstudiante[estudiante.id].nombre}
+                        </span>
+                      )}
                     </span>
                     <span className="flex items-center gap-2">
                       {entrega?.calificacion != null && (
@@ -194,7 +232,7 @@ export default function RevisionEntrega({ actividad, estudiantes, entregas, urls
                         />
                       </label>
 
-                      <div className="mt-4 flex gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
                         <button
                           onClick={() => guardarRevision(entrega.id)}
                           disabled={guardando}
@@ -203,6 +241,21 @@ export default function RevisionEntrega({ actividad, estudiantes, entregas, urls
                         >
                           {guardando ? "Guardando…" : "Guardar revisión"}
                         </button>
+                        {equipoPorEstudiante[estudiante.id] && (
+                          <button
+                            onClick={() =>
+                              guardarRevisionEquipo(
+                                equipoPorEstudiante[estudiante.id].id,
+                                equipoPorEstudiante[estudiante.id].nombre,
+                              )
+                            }
+                            disabled={guardando}
+                            className="rounded-full px-5 py-1.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+                            style={{ background: "#7c3aed" }}
+                          >
+                            👥 Aplicar a todo {equipoPorEstudiante[estudiante.id].nombre}
+                          </button>
+                        )}
                         <button
                           onClick={() => setRevisandoId(null)}
                           disabled={guardando}

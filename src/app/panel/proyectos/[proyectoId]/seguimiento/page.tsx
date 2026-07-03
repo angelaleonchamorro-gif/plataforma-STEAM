@@ -37,15 +37,27 @@ export default async function SeguimientoPage({
 
   const esBachillerato = subnivelDeGrado(clase.grado) === "BGU";
 
-  const [{ data: actividades }, { data: matriculas }] = await Promise.all([
-    supabase
-      .from("actividades")
-      .select("id, fase, titulo, publicada, orden")
-      .eq("proyecto_id", proyecto.id)
-      .eq("publicada", true)
-      .order("orden"),
-    supabase.from("clase_estudiantes").select("estudiante_id").eq("clase_id", clase.id),
-  ]);
+  const [{ data: actividades }, { data: matriculas }, { data: equipos }, { data: miembros }] =
+    await Promise.all([
+      supabase
+        .from("actividades")
+        .select("id, fase, titulo, publicada, orden")
+        .eq("proyecto_id", proyecto.id)
+        .eq("publicada", true)
+        .order("orden"),
+      supabase.from("clase_estudiantes").select("estudiante_id").eq("clase_id", clase.id),
+      supabase.from("equipos").select("id, nombre").eq("proyecto_id", proyecto.id),
+      supabase
+        .from("equipo_miembros")
+        .select("equipo_id, estudiante_id")
+        .eq("proyecto_id", proyecto.id),
+    ]);
+
+  const equipoPorEstudiante: Record<string, { id: string; nombre: string }> = {};
+  for (const miembro of miembros ?? []) {
+    const equipo = (equipos ?? []).find((e) => e.id === miembro.equipo_id);
+    if (equipo) equipoPorEstudiante[miembro.estudiante_id] = equipo;
+  }
 
   const { data: estudiantes } = matriculas?.length
     ? await supabase
@@ -171,6 +183,7 @@ export default async function SeguimientoPage({
               estudiantes={estudiantes}
               entregas={(entregas ?? []).filter((e) => e.actividad_id === actividad.id)}
               urlsFirmadas={urlsFirmadas}
+              equipoPorEstudiante={equipoPorEstudiante}
             />
           ))}
         </div>

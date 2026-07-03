@@ -498,6 +498,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      equipos: {
+        Row: {
+          id: string;
+          proyecto_id: string;
+          nombre: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          proyecto_id: string;
+          nombre: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          proyecto_id?: string;
+          nombre?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      equipo_miembros: {
+        Row: {
+          equipo_id: string;
+          proyecto_id: string;
+          estudiante_id: string;
+          rol: string | null;
+        };
+        Insert: {
+          equipo_id: string;
+          proyecto_id: string;
+          estudiante_id: string;
+          rol?: string | null;
+        };
+        Update: {
+          equipo_id?: string;
+          proyecto_id?: string;
+          estudiante_id?: string;
+          rol?: string | null;
+        };
+        Relationships: [];
+      };
       generaciones_ia: {
         Row: {
           id: string;

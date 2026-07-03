@@ -34,6 +34,17 @@ export default async function ProyectoEstudiantePage({
     .maybeSingle();
   const esBachillerato = clase ? subnivelDeGrado(clase.grado) === "BGU" : false;
 
+  // Equipo del estudiante en este proyecto (si el docente ya armó equipos).
+  const { data: miEquipo } = await supabase
+    .from("equipo_miembros")
+    .select("equipo_id, rol")
+    .eq("proyecto_id", proyecto.id)
+    .eq("estudiante_id", user.id)
+    .maybeSingle();
+  const { data: equipo } = miEquipo
+    ? await supabase.from("equipos").select("nombre").eq("id", miEquipo.equipo_id).maybeSingle()
+    : { data: null };
+
   // RLS: solo llegan las actividades PUBLICADAS.
   const [{ data: actividades }, { data: entregas }] = await Promise.all([
     supabase
@@ -87,9 +98,20 @@ export default async function ProyectoEstudiantePage({
           <p className="mt-1 text-sm">{proyecto.reto}</p>
         </div>
       )}
-      <p className="mt-4 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
-        {hechas} de {actividades?.length ?? 0} actividades entregadas
-      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <p className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
+          {hechas} de {actividades?.length ?? 0} actividades entregadas
+        </p>
+        {equipo && (
+          <span
+            className="rounded-full px-3 py-1 text-sm font-semibold"
+            style={{ background: "rgba(139,92,246,0.1)", color: "#7c3aed" }}
+          >
+            👥 Tu equipo: {equipo.nombre}
+            {miEquipo?.rol && ` · Tu rol: ${miEquipo.rol}`}
+          </span>
+        )}
+      </div>
 
       {esBachillerato && (
         <Link

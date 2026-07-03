@@ -42,7 +42,9 @@ export async function crearClase(datos: z.infer<typeof esquemaClase>) {
     })
     .select("id")
     .single();
-  if (error || !clase) return { error: "No se pudo crear la clase." };
+  if (error || !clase) {
+    return { error: `No se pudo crear la clase.${error ? ` (${error.message})` : ""}` };
+  }
 
   revalidatePath("/panel/clases");
   return { ok: true as const, claseId: clase.id };

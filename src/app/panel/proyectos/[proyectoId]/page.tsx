@@ -115,13 +115,22 @@ export default async function ProyectoPage({
             👥 Equipos
           </Link>
           {(proyecto.estado === "en_ejecucion" || proyecto.estado === "finalizado") && (
-            <Link
-              href={`/panel/proyectos/${proyecto.id}/seguimiento`}
-              className="rounded-full px-5 py-2 text-sm font-semibold text-[#151E29] transition hover:brightness-95"
-              style={{ background: "var(--accent)" }}
-            >
-              📊 Ver seguimiento
-            </Link>
+            <>
+              <Link
+                href={`/panel/proyectos/${proyecto.id}/muro`}
+                className="rounded-full border px-5 py-2 text-sm font-semibold transition hover:bg-black/5"
+                style={{ borderColor: "var(--border-light-strong)" }}
+              >
+                🧱 Muro
+              </Link>
+              <Link
+                href={`/panel/proyectos/${proyecto.id}/seguimiento`}
+                className="rounded-full px-5 py-2 text-sm font-semibold text-[#151E29] transition hover:brightness-95"
+                style={{ background: "var(--accent)" }}
+              >
+                📊 Ver seguimiento
+              </Link>
+            </>
           )}
         </div>
       </div>

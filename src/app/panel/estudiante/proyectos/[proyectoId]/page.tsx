@@ -111,6 +111,13 @@ export default async function ProyectoEstudiantePage({
             {miEquipo?.rol && ` · Tu rol: ${miEquipo.rol}`}
           </span>
         )}
+        <Link
+          href={`/panel/estudiante/proyectos/${proyecto.id}/muro`}
+          className="rounded-full px-4 py-1.5 text-sm font-semibold text-[#151E29] transition hover:brightness-95"
+          style={{ background: "var(--accent)" }}
+        >
+          🧱 Muro de la clase
+        </Link>
       </div>
 
       {esBachillerato && (

@@ -528,6 +528,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      comentarios_muro: {
+        Row: {
+          id: string;
+          entrega_id: string;
+          autor_id: string;
+          texto: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          entrega_id: string;
+          autor_id: string;
+          texto: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          entrega_id?: string;
+          autor_id?: string;
+          texto?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       equipos: {
         Row: {
           id: string;
@@ -647,6 +671,38 @@ export type Database = {
       fn_soy_codocente_de_clase: {
         Args: { p_clase: string };
         Returns: boolean;
+      };
+      fn_puedo_ver_muro: {
+        Args: { p_actividad: string };
+        Returns: boolean;
+      };
+      fn_puedo_comentar_entrega: {
+        Args: { p_entrega: string };
+        Returns: boolean;
+      };
+      fn_muro_actividad: {
+        Args: { p_actividad: string };
+        Returns: {
+          entrega_id: string;
+          estudiante_id: string;
+          nombres: string;
+          apellidos: string;
+          contenido: string | null;
+          evidencia_url: string | null;
+          entregada_at: string | null;
+        }[];
+      };
+      fn_comentarios_actividad: {
+        Args: { p_actividad: string };
+        Returns: {
+          comentario_id: string;
+          entrega_id: string;
+          autor_id: string;
+          autor_nombre: string;
+          autor_rol: Database["public"]["Enums"]["rol_usuario"];
+          texto: string;
+          created_at: string;
+        }[];
       };
     };
     Enums: {

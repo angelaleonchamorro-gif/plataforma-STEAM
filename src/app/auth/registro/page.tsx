@@ -26,6 +26,31 @@ export default function RegistroPage() {
   const [codigoClase, setCodigoClase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [infoAmie, setInfoAmie] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+
+  // Busca el código en el catálogo oficial del Mineduc y autocompleta el nombre.
+  async function consultarAmie() {
+    if (codigoAmie.length < 6) return;
+    setInfoAmie(null);
+    try {
+      const res = await fetch(`/api/amie/consulta?codigo=${encodeURIComponent(codigoAmie)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (rol === "directivo") setNombreInstitucion(data.nombre);
+        setInfoAmie({
+          tipo: "ok",
+          texto: `✓ ${data.nombre}${data.provincia ? ` — ${data.provincia}, ${data.canton}` : ""}`,
+        });
+      } else {
+        setInfoAmie({
+          tipo: "error",
+          texto: "Ese código no aparece en el registro oficial del Mineduc.",
+        });
+      }
+    } catch {
+      setInfoAmie(null);
+    }
+  }
 
   async function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();
@@ -174,22 +199,35 @@ export default function RegistroPage() {
           {rol === "directivo" && (
             <>
               <label className="text-sm font-medium">
+                Código AMIE
+                <input
+                  required
+                  value={codigoAmie}
+                  onChange={(e) => {
+                    setCodigoAmie(e.target.value.toUpperCase());
+                    setInfoAmie(null);
+                  }}
+                  onBlur={consultarAmie}
+                  placeholder="17H00000"
+                  className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#F69E26]"
+                  style={{ borderColor: "var(--border-light-md)" }}
+                />
+                {infoAmie && (
+                  <span
+                    className="mt-1 block text-xs font-semibold"
+                    style={{ color: infoAmie.tipo === "ok" ? "var(--color-success-hover)" : "var(--color-error)" }}
+                  >
+                    {infoAmie.texto}
+                  </span>
+                )}
+              </label>
+              <label className="text-sm font-medium">
                 Nombre de la institución
                 <input
                   required
                   value={nombreInstitucion}
                   onChange={(e) => setNombreInstitucion(e.target.value)}
-                  className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#F69E26]"
-                  style={{ borderColor: "var(--border-light-md)" }}
-                />
-              </label>
-              <label className="text-sm font-medium">
-                Código AMIE
-                <input
-                  required
-                  value={codigoAmie}
-                  onChange={(e) => setCodigoAmie(e.target.value.toUpperCase())}
-                  placeholder="17H00000"
+                  placeholder="Se completa con el código AMIE"
                   className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#F69E26]"
                   style={{ borderColor: "var(--border-light-md)" }}
                 />
@@ -203,11 +241,23 @@ export default function RegistroPage() {
               <input
                 required
                 value={codigoAmie}
-                onChange={(e) => setCodigoAmie(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setCodigoAmie(e.target.value.toUpperCase());
+                  setInfoAmie(null);
+                }}
+                onBlur={consultarAmie}
                 placeholder="17H00000"
                 className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#F69E26]"
                 style={{ borderColor: "var(--border-light-md)" }}
               />
+              {infoAmie && (
+                <span
+                  className="mt-1 block text-xs font-semibold"
+                  style={{ color: infoAmie.tipo === "ok" ? "var(--color-success-hover)" : "var(--color-error)" }}
+                >
+                  {infoAmie.texto}
+                </span>
+              )}
               <span className="mt-1 block text-xs font-normal" style={{ color: "var(--text-subtle)" }}>
                 Tu directivo debe haber registrado la institución primero.
               </span>

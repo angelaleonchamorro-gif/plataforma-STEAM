@@ -390,6 +390,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      amie_catalogo: {
+        Row: {
+          codigo: string;
+          nombre: string;
+          provincia: string | null;
+          canton: string | null;
+          sostenimiento: string | null;
+          nivel_educacion: string | null;
+        };
+        Insert: {
+          codigo: string;
+          nombre: string;
+          provincia?: string | null;
+          canton?: string | null;
+          sostenimiento?: string | null;
+          nivel_educacion?: string | null;
+        };
+        Update: {
+          codigo?: string;
+          nombre?: string;
+          provincia?: string | null;
+          canton?: string | null;
+          sostenimiento?: string | null;
+          nivel_educacion?: string | null;
+        };
+        Relationships: [];
+      };
       articulos_cientificos: {
         Row: {
           id: string;

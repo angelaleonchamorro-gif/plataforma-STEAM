@@ -39,6 +39,24 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    // Validar contra el catálogo oficial del Mineduc (si ya está cargado;
+    // con el catálogo vacío o ausente se permite el registro libre).
+    const { data: oficial, error: errorCatalogo } = await admin
+      .from("amie_catalogo")
+      .select("codigo")
+      .eq("codigo", codigoAmie.toUpperCase())
+      .maybeSingle();
+    if (!errorCatalogo && !oficial) {
+      const { count } = await admin
+        .from("amie_catalogo")
+        .select("codigo", { count: "exact", head: true });
+      if ((count ?? 0) > 0) {
+        return NextResponse.json(
+          { mensaje: "Ese código AMIE no existe en el registro oficial del Ministerio de Educación. Verifícalo." },
+          { status: 404 },
+        );
+      }
+    }
     const { data: existente } = await admin
       .from("instituciones")
       .select("id")

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import ConfigInstitucional from "./ConfigInstitucional";
 
 // Espacio de definición institucional (directivos): frecuencia de proyectos,
 // duración disponible (1–9 meses) y asignaturas que intervienen.
@@ -15,54 +16,41 @@ export default async function InstitucionPage() {
     .select("rol, nombres, institucion_id")
     .eq("id", user.id)
     .maybeSingle();
-  if (!perfil || perfil.rol !== "directivo") redirect("/panel");
+  if (!perfil || perfil.rol !== "directivo" || !perfil.institucion_id) redirect("/panel");
 
-  const { data: config } = await supabase
-    .from("configuracion_institucional")
-    .select("frecuencia_proyectos, duracion_meses")
-    .eq("institucion_id", perfil.institucion_id!)
-    .maybeSingle();
+  const [{ data: institucion }, { data: config }, { data: asignaturas }, { data: habilitadas }] =
+    await Promise.all([
+      supabase.from("instituciones").select("nombre").eq("id", perfil.institucion_id).maybeSingle(),
+      supabase
+        .from("configuracion_institucional")
+        .select("frecuencia_proyectos, duracion_meses")
+        .eq("institucion_id", perfil.institucion_id)
+        .maybeSingle(),
+      supabase.from("asignaturas").select("id, codigo, nombre, es_principal").order("nombre"),
+      supabase
+        .from("institucion_asignaturas")
+        .select("asignatura_id")
+        .eq("institucion_id", perfil.institucion_id),
+    ]);
 
-  const { data: habilitadas } = await supabase
-    .from("institucion_asignaturas")
-    .select("asignatura_id")
-    .eq("institucion_id", perfil.institucion_id!);
+  // Principales STEAM primero, luego conexiones, ambas alfabéticas.
+  const ordenadas = [...(asignaturas ?? [])].sort(
+    (a, b) => Number(b.es_principal) - Number(a.es_principal) || a.nombre.localeCompare(b.nombre),
+  );
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="text-3xl font-bold">Bienvenido, {perfil.nombres}</h1>
       <p className="mt-1" style={{ color: "var(--text-muted)" }}>
-        Define cómo trabajará tu institución los proyectos STEAM.
+        {institucion?.nombre} · Define cómo trabajará tu institución los proyectos STEAM.
       </p>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-6" style={{ border: "1px solid var(--border-light)" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
-            FRECUENCIA DE PROYECTOS
-          </h2>
-          <p className="mt-2 text-2xl font-bold capitalize">
-            {config?.frecuencia_proyectos ?? "Sin definir"}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-6" style={{ border: "1px solid var(--border-light)" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
-            DURACIÓN POR PROYECTO
-          </h2>
-          <p className="mt-2 text-2xl font-bold">
-            {config ? `${config.duracion_meses} ${config.duracion_meses === 1 ? "mes" : "meses"}` : "Sin definir"}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-6" style={{ border: "1px solid var(--border-light)" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
-            ASIGNATURAS HABILITADAS
-          </h2>
-          <p className="mt-2 text-2xl font-bold">{habilitadas?.length ?? 0}</p>
-        </div>
-      </div>
-
-      <p className="mt-8 text-sm" style={{ color: "var(--text-subtle)" }}>
-        La edición de la configuración institucional llega en la siguiente iteración.
-      </p>
+      <ConfigInstitucional
+        frecuenciaInicial={config?.frecuencia_proyectos ?? "trimestral"}
+        duracionInicial={config?.duracion_meses ?? 3}
+        asignaturas={ordenadas}
+        habilitadasIniciales={(habilitadas ?? []).map((h) => h.asignatura_id)}
+      />
     </main>
   );
 }

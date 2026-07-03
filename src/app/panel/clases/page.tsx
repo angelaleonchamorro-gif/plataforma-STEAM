@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import NuevaClaseForm from "./NuevaClaseForm";
 
-// Hub del docente: sus clases (desde aquí creará proyectos STEAM).
+// Hub del docente: sus clases.
 export default async function ClasesPage() {
   const supabase = await createClient();
   const {
@@ -29,9 +31,11 @@ export default async function ClasesPage() {
         MIS CLASES
       </p>
 
+      <NuevaClaseForm />
+
       {!clases?.length ? (
         <div
-          className="mt-10 rounded-2xl bg-white p-10 text-center"
+          className="mt-8 rounded-2xl bg-white p-10 text-center"
           style={{ border: "1px solid var(--border-light)" }}
         >
           <p className="font-semibold">Aún no tienes clases</p>
@@ -42,10 +46,11 @@ export default async function ClasesPage() {
       ) : (
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {clases.map((clase) => (
-            <div
+            <Link
               key={clase.id}
-              className="rounded-2xl p-6 text-white"
-              style={{ background: "var(--primary-dark)" }}
+              href={`/panel/clases/${clase.id}`}
+              className="rounded-2xl p-6 text-white transition hover:-translate-y-1"
+              style={{ background: "var(--primary-dark)", boxShadow: "0 6px 24px rgba(21,30,41,0.25)" }}
             >
               <h2 className="font-semibold">{clase.nombre}</h2>
               <p className="mt-1 text-sm" style={{ color: "var(--text-dark-muted)" }}>
@@ -57,14 +62,10 @@ export default async function ClasesPage() {
                   {clase.codigo_invitacion}
                 </span>
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
-
-      <p className="mt-8 text-sm" style={{ color: "var(--text-subtle)" }}>
-        Creación de clases, selección de destrezas y generación con IA llegan en la siguiente iteración.
-      </p>
     </main>
   );
 }

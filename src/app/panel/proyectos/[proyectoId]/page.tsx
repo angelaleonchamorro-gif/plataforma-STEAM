@@ -99,7 +99,14 @@ export default async function ProyectoPage({
       </Link>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">{proyecto.titulo ?? "Nuevo proyecto STEAM"}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/panel/proyectos/${proyecto.id}/codocentes`}
+            className="rounded-full border px-5 py-2 text-sm font-semibold transition hover:bg-black/5"
+            style={{ borderColor: "var(--border-light-strong)" }}
+          >
+            🤝 Co-docentes
+          </Link>
           <Link
             href={`/panel/proyectos/${proyecto.id}/equipos`}
             className="rounded-full border px-5 py-2 text-sm font-semibold transition hover:bg-black/5"

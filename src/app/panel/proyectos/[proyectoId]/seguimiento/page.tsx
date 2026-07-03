@@ -33,7 +33,16 @@ export default async function SeguimientoPage({
     .select("id, nombre, grado, docente_id")
     .eq("id", proyecto.clase_id)
     .maybeSingle();
-  if (!clase || clase.docente_id !== user.id) redirect("/panel/clases");
+  if (!clase) redirect("/panel/clases");
+
+  // Acceso: docente líder o co-docente invitado (interdisciplinario).
+  const esLider = clase.docente_id === user.id;
+  if (!esLider) {
+    const { data: esCodocente } = await supabase.rpc("fn_soy_codocente_de_proyecto", {
+      p_proyecto: proyecto.id,
+    });
+    if (!esCodocente) redirect("/panel/clases");
+  }
 
   const esBachillerato = subnivelDeGrado(clase.grado) === "BGU";
 
@@ -107,15 +116,18 @@ export default async function SeguimientoPage({
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <Link
-        href={`/panel/proyectos/${proyecto.id}`}
+        href={esLider ? `/panel/proyectos/${proyecto.id}` : "/panel/clases"}
         className="text-sm"
         style={{ color: "var(--text-muted)" }}
       >
-        ← {proyecto.titulo ?? "Proyecto"}
+        ← {esLider ? proyecto.titulo ?? "Proyecto" : "Mis clases"}
       </Link>
-      <h1 className="mt-2 text-3xl font-bold">Seguimiento del proyecto</h1>
+      <h1 className="mt-2 text-3xl font-bold">
+        Seguimiento{esLider ? " del proyecto" : `: ${proyecto.titulo ?? "proyecto"}`}
+      </h1>
       <p className="mt-1" style={{ color: "var(--text-muted)" }}>
-        {clase.nombre} · trazabilidad de las actividades de tus estudiantes
+        {clase.nombre} · trazabilidad de las actividades de los estudiantes
+        {!esLider && " · participas como co-docente"}
       </p>
 
       <div className="mt-8 grid gap-5 md:grid-cols-4">

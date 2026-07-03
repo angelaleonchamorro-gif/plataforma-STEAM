@@ -10,6 +10,19 @@ const esquemaRevision = z.object({
   calificacion: z.number().min(0).max(10).nullable(),
 });
 
+// Puede revisar/calificar: el docente líder del proyecto O un co-docente
+// invitado (trabajo interdisciplinario).
+async function puedeRevisar(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  proyectoId: string,
+): Promise<boolean> {
+  const [{ data: esDocente }, { data: esCodocente }] = await Promise.all([
+    supabase.rpc("fn_es_docente_de_proyecto", { p_proyecto: proyectoId }),
+    supabase.rpc("fn_soy_codocente_de_proyecto", { p_proyecto: proyectoId }),
+  ]);
+  return Boolean(esDocente) || Boolean(esCodocente);
+}
+
 export async function revisarEntrega(datos: z.infer<typeof esquemaRevision>) {
   const validacion = esquemaRevision.safeParse(datos);
   if (!validacion.success) return { error: "La calificación debe estar entre 0 y 10." };
@@ -36,10 +49,9 @@ export async function revisarEntrega(datos: z.infer<typeof esquemaRevision>) {
     .maybeSingle();
   if (!actividad) return { error: "Actividad no encontrada." };
 
-  const { data: esDocente } = await supabase.rpc("fn_es_docente_de_proyecto", {
-    p_proyecto: actividad.proyecto_id,
-  });
-  if (!esDocente) return { error: "Solo el docente del proyecto puede revisar entregas." };
+  if (!(await puedeRevisar(supabase, actividad.proyecto_id))) {
+    return { error: "Solo el docente o un co-docente del proyecto puede revisar entregas." };
+  }
 
   const { error } = await supabase
     .from("entregas")
@@ -48,6 +60,7 @@ export async function revisarEntrega(datos: z.infer<typeof esquemaRevision>) {
       retroalimentacion: validacion.data.retroalimentacion || null,
       calificacion: validacion.data.calificacion,
       revisada_at: new Date().toISOString(),
+      revisada_por: user.id,
       updated_at: new Date().toISOString(),
     })
     .eq("id", entrega.id);
@@ -83,10 +96,9 @@ export async function revisarEquipo(datos: z.infer<typeof esquemaRevisionEquipo>
     .maybeSingle();
   if (!actividad) return { error: "Actividad no encontrada." };
 
-  const { data: esDocente } = await supabase.rpc("fn_es_docente_de_proyecto", {
-    p_proyecto: actividad.proyecto_id,
-  });
-  if (!esDocente) return { error: "Solo el docente del proyecto puede calificar." };
+  if (!(await puedeRevisar(supabase, actividad.proyecto_id))) {
+    return { error: "Solo el docente o un co-docente del proyecto puede calificar." };
+  }
 
   // Miembros del equipo (el equipo debe ser del mismo proyecto).
   const { data: miembros } = await supabase
@@ -105,6 +117,7 @@ export async function revisarEquipo(datos: z.infer<typeof esquemaRevisionEquipo>
       retroalimentacion: validacion.data.retroalimentacion || null,
       calificacion: validacion.data.calificacion,
       revisada_at: ahora,
+      revisada_por: user.id,
       updated_at: ahora,
     })),
     { onConflict: "actividad_id,estudiante_id" },
@@ -138,10 +151,9 @@ export async function revisarArticulo(datos: z.infer<typeof esquemaRevisionArtic
     .maybeSingle();
   if (!articulo) return { error: "Artículo no encontrado." };
 
-  const { data: esDocente } = await supabase.rpc("fn_es_docente_de_proyecto", {
-    p_proyecto: articulo.proyecto_id,
-  });
-  if (!esDocente) return { error: "Solo el docente del proyecto puede revisar artículos." };
+  if (!(await puedeRevisar(supabase, articulo.proyecto_id))) {
+    return { error: "Solo el docente o un co-docente del proyecto puede revisar artículos." };
+  }
 
   const { error } = await supabase
     .from("articulos_cientificos")
@@ -150,6 +162,7 @@ export async function revisarArticulo(datos: z.infer<typeof esquemaRevisionArtic
       retroalimentacion: validacion.data.retroalimentacion || null,
       calificacion: validacion.data.calificacion,
       revisado_at: new Date().toISOString(),
+      revisado_por: user.id,
       updated_at: new Date().toISOString(),
     })
     .eq("id", articulo.id);

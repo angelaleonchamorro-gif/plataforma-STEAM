@@ -153,6 +153,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      proyecto_docentes: {
+        Row: {
+          proyecto_id: string;
+          docente_id: string;
+          asignatura_id: string | null;
+          invitado_por: string | null;
+          created_at: string;
+        };
+        Insert: {
+          proyecto_id: string;
+          docente_id: string;
+          asignatura_id?: string | null;
+          invitado_por?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          proyecto_id?: string;
+          docente_id?: string;
+          asignatura_id?: string | null;
+          invitado_por?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       proyecto_habilidades: {
         Row: {
           id: string;
@@ -375,6 +399,7 @@ export type Database = {
           retroalimentacion: string | null;
           calificacion: number | null;
           revisada_at: string | null;
+          revisada_por: string | null;
           updated_at: string;
         };
         Insert: {
@@ -388,6 +413,7 @@ export type Database = {
           retroalimentacion?: string | null;
           calificacion?: number | null;
           revisada_at?: string | null;
+          revisada_por?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -401,6 +427,7 @@ export type Database = {
           retroalimentacion?: string | null;
           calificacion?: number | null;
           revisada_at?: string | null;
+          revisada_por?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -470,6 +497,7 @@ export type Database = {
           retroalimentacion: string | null;
           calificacion: number | null;
           revisado_at: string | null;
+          revisado_por: string | null;
           updated_at: string;
         };
         Insert: {
@@ -482,6 +510,7 @@ export type Database = {
           retroalimentacion?: string | null;
           calificacion?: number | null;
           revisado_at?: string | null;
+          revisado_por?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -494,6 +523,7 @@ export type Database = {
           retroalimentacion?: string | null;
           calificacion?: number | null;
           revisado_at?: string | null;
+          revisado_por?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -592,6 +622,30 @@ export type Database = {
       };
       fn_es_estudiante_de_proyecto: {
         Args: { p_proyecto: string };
+        Returns: boolean;
+      };
+      fn_soy_docente_de_clase: {
+        Args: { p_clase: string };
+        Returns: boolean;
+      };
+      fn_estoy_matriculado: {
+        Args: { p_clase: string };
+        Returns: boolean;
+      };
+      fn_soy_directivo_de_clase: {
+        Args: { p_clase: string };
+        Returns: boolean;
+      };
+      fn_soy_directivo_de_proyecto: {
+        Args: { p_proyecto: string };
+        Returns: boolean;
+      };
+      fn_soy_codocente_de_proyecto: {
+        Args: { p_proyecto: string };
+        Returns: boolean;
+      };
+      fn_soy_codocente_de_clase: {
+        Args: { p_clase: string };
         Returns: boolean;
       };
     };

@@ -24,6 +24,24 @@ export default async function ClasesPage() {
     .eq("docente_id", user.id)
     .order("created_at", { ascending: false });
 
+  // Proyectos donde soy co-docente (invitaciones de colegas).
+  const { data: invitaciones } = await supabase
+    .from("proyecto_docentes")
+    .select("proyecto_id")
+    .eq("docente_id", user.id);
+  const { data: compartidos } = invitaciones?.length
+    ? await supabase
+        .from("proyectos")
+        .select("id, titulo, estado, clase_id")
+        .in("id", invitaciones.map((i) => i.proyecto_id))
+    : { data: [] };
+  const { data: clasesCompartidas } = compartidos?.length
+    ? await supabase
+        .from("clases")
+        .select("id, nombre, grado")
+        .in("id", compartidos.map((p) => p.clase_id))
+    : { data: [] };
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="text-3xl font-bold">Hola, {perfil.nombres}</h1>
@@ -65,6 +83,37 @@ export default async function ClasesPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {(compartidos?.length ?? 0) > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl font-bold">🤝 Proyectos compartidos conmigo</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+            Proyectos interdisciplinarios donde participas como co-docente: da seguimiento y
+            califica a los estudiantes.
+          </p>
+          <div className="mt-4 grid gap-5 md:grid-cols-3">
+            {compartidos!.map((proyecto) => {
+              const clase = (clasesCompartidas ?? []).find((c) => c.id === proyecto.clase_id);
+              return (
+                <Link
+                  key={proyecto.id}
+                  href={`/panel/proyectos/${proyecto.id}/seguimiento`}
+                  className="rounded-2xl bg-white p-6 transition hover:-translate-y-1"
+                  style={{ border: "1px solid var(--accent-border)", background: "var(--accent-bg-subtle)" }}
+                >
+                  <h3 className="font-semibold">{proyecto.titulo ?? "Proyecto en definición"}</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                    {clase ? `${clase.nombre} · ${clase.grado}` : ""}
+                  </p>
+                  <p className="mt-3 text-sm font-semibold" style={{ color: "var(--accent-hover)" }}>
+                    Ver seguimiento →
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
     </main>
   );

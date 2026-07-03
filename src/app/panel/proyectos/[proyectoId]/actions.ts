@@ -161,6 +161,21 @@ export async function alternarPublicacion(actividadId: string, publicada: boolea
     .eq("id", actividad.id);
   if (error) return { error: "No se pudo cambiar la publicación." };
 
+  if (publicada) {
+    // Con la primera actividad publicada el proyecto ya es visible para los
+    // estudiantes: pasa a ejecución (sin esperar a "Publicar todas").
+    await supabase
+      .from("proyectos")
+      .update({ estado: "en_ejecucion" })
+      .eq("id", proyectoId)
+      .in("estado", ["definicion", "planificacion"]);
+    await supabase
+      .from("proyectos")
+      .update({ fecha_inicio: new Date().toISOString().slice(0, 10) })
+      .eq("id", proyectoId)
+      .is("fecha_inicio", null);
+  }
+
   revalidatePath(`/panel/proyectos/${proyectoId}`);
   return { ok: true as const };
 }

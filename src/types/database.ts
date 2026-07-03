@@ -131,6 +131,7 @@ export type Database = {
           descripcion: string;
           subnivel: string;
           grado: string | null;
+          indicador: string | null;
         };
         Insert: {
           id?: string;
@@ -139,6 +140,7 @@ export type Database = {
           descripcion: string;
           subnivel: string;
           grado?: string | null;
+          indicador?: string | null;
         };
         Update: {
           id?: string;
@@ -147,6 +149,34 @@ export type Database = {
           descripcion?: string;
           subnivel?: string;
           grado?: string | null;
+          indicador?: string | null;
+        };
+        Relationships: [];
+      };
+      proyecto_habilidades: {
+        Row: {
+          id: string;
+          proyecto_id: string;
+          componente: string;
+          descripcion: string;
+          indicador: string | null;
+          orden: number;
+        };
+        Insert: {
+          id?: string;
+          proyecto_id: string;
+          componente: string;
+          descripcion: string;
+          indicador?: string | null;
+          orden?: number;
+        };
+        Update: {
+          id?: string;
+          proyecto_id?: string;
+          componente?: string;
+          descripcion?: string;
+          indicador?: string | null;
+          orden?: number;
         };
         Relationships: [];
       };
@@ -286,9 +316,12 @@ export type Database = {
           semana_id: string | null;
           fase: Database["public"]["Enums"]["fase_proyecto"];
           dcd_id: string | null;
+          asignatura_id: string | null;
           titulo: string;
           instrucciones: string;
           criterio_evaluacion: string | null;
+          recursos: string | null;
+          evidencia: string | null;
           orden: number;
           generada_por_ia: boolean;
           publicada: boolean;
@@ -300,9 +333,12 @@ export type Database = {
           semana_id?: string | null;
           fase: Database["public"]["Enums"]["fase_proyecto"];
           dcd_id?: string | null;
+          asignatura_id?: string | null;
           titulo: string;
           instrucciones: string;
           criterio_evaluacion?: string | null;
+          recursos?: string | null;
+          evidencia?: string | null;
           orden?: number;
           generada_por_ia?: boolean;
           publicada?: boolean;
@@ -314,9 +350,12 @@ export type Database = {
           semana_id?: string | null;
           fase?: Database["public"]["Enums"]["fase_proyecto"];
           dcd_id?: string | null;
+          asignatura_id?: string | null;
           titulo?: string;
           instrucciones?: string;
           criterio_evaluacion?: string | null;
+          recursos?: string | null;
+          evidencia?: string | null;
           orden?: number;
           generada_por_ia?: boolean;
           publicada?: boolean;

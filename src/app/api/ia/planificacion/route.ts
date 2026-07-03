@@ -72,6 +72,11 @@ export async function POST(request: Request) {
     .select("id, codigo, descripcion, asignatura_id")
     .in("id", (seleccion ?? []).map((s) => s.dcd_id));
   const { data: asignaturas } = await supabase.from("asignaturas").select("id, nombre");
+  const { data: habilidades } = await supabase
+    .from("proyecto_habilidades")
+    .select("componente, descripcion")
+    .eq("proyecto_id", proyecto.id)
+    .order("orden");
 
   const porAsignatura = new Map<string, { asignatura: string; destrezas: { codigo: string; descripcion: string }[] }>();
   for (const d of destrezas ?? []) {
@@ -85,9 +90,26 @@ export async function POST(request: Request) {
     edadReferencial: clase.edad_referencial,
     duracionSemanas: proyecto.duracion_semanas,
     dcdPorAsignatura: [...porAsignatura.values()],
+    habilidades: (habilidades ?? []) as ContextoProyecto["habilidades"],
     titulo: proyecto.titulo,
     reto: proyecto.reto,
   };
+
+  // Para mapear el nombre de asignatura que devuelve la IA → id.
+  // "Tecnología" e "Ingeniería" existen en el catálogo (TEC / ING).
+  const idAsignaturaPorNombre = new Map(
+    (asignaturas ?? []).map((a) => [a.nombre.toLowerCase(), a.id]),
+  );
+  function resolverAsignatura(nombre: string | null): string | null {
+    if (!nombre) return null;
+    const limpio = nombre.trim().toLowerCase();
+    if (idAsignaturaPorNombre.has(limpio)) return idAsignaturaPorNombre.get(limpio)!;
+    // Coincidencia parcial (ej. "Tecnología/Robótica" → "Tecnología")
+    for (const [candidato, id] of idAsignaturaPorNombre) {
+      if (limpio.includes(candidato) || candidato.includes(limpio)) return id;
+    }
+    return null;
+  }
 
   const admin = createAdminClient();
   try {
@@ -122,9 +144,12 @@ export async function POST(request: Request) {
           semana_id: semanaCreada?.id ?? null,
           fase: semana.fase,
           dcd_id: dcdId,
+          asignatura_id: resolverAsignatura(actividad.asignatura),
           titulo: actividad.titulo,
           instrucciones: actividad.instrucciones,
           criterio_evaluacion: actividad.criterioEvaluacion,
+          recursos: actividad.recursos,
+          evidencia: actividad.evidencia,
           orden: orden++,
           generada_por_ia: true,
           publicada: false,

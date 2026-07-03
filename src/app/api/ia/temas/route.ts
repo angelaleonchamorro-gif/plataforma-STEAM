@@ -69,11 +69,18 @@ export async function POST(request: Request) {
     porAsignatura.get(nombre)!.destrezas.push({ codigo: d.codigo, descripcion: d.descripcion });
   }
 
+  const { data: habilidades } = await supabase
+    .from("proyecto_habilidades")
+    .select("componente, descripcion")
+    .eq("proyecto_id", proyecto.id)
+    .order("orden");
+
   const contexto: ContextoProyecto = {
     grado: clase.grado,
     edadReferencial: clase.edad_referencial,
     duracionSemanas: proyecto.duracion_semanas,
     dcdPorAsignatura: [...porAsignatura.values()],
+    habilidades: (habilidades ?? []) as ContextoProyecto["habilidades"],
   };
 
   const admin = createAdminClient();

@@ -112,6 +112,10 @@ def extraer():
                     for fila in tabla:
                         if len(fila) != 3 or not fila[1]:
                             continue
+                        # Columna 3 = indicadores de evaluación de la misma fila
+                        # (mismo criterio de evaluación que las destrezas de la fila;
+                        # el emparejamiento es por fila, no 1:1 exacto).
+                        indicador = limpiar(fila[2] or "") or None
                         for codigo, descripcion in destrezas_de_celda(fila[1]):
                             prefijo, sub = codigo.split(".")[0], codigo.split(".")[1]
                             if sub != digito:
@@ -128,7 +132,10 @@ def extraer():
                                     "codigo": codigo,
                                     "descripcion": descripcion,
                                     "subnivel": subnivel,
+                                    "indicador": indicador,
                                 }
+                            elif indicador and not dcd[clave].get("indicador"):
+                                dcd[clave]["indicador"] = indicador
                             encontradas += 1
         print(f"{archivo}: {encontradas} destrezas leídas")
 
@@ -170,17 +177,23 @@ def generar_sql(registros):
     lineas.append(",\n".join(valores_asig))
     lineas.append("on conflict (codigo) do nothing;")
     lineas.append("")
-    lineas.append("insert into dcd (asignatura_id, codigo, descripcion, subnivel) values")
+    lineas.append("insert into dcd (asignatura_id, codigo, descripcion, subnivel, indicador) values")
 
     valores = []
     for r in registros:
+        indicador = sql_texto(r["indicador"]) if r.get("indicador") else "null"
         valores.append(
             "  ((select id from asignaturas where codigo = "
             f"{sql_texto(r['asignatura'])}), {sql_texto(r['codigo'])}, "
-            f"{sql_texto(r['descripcion'])}, {sql_texto(r['subnivel'])})"
+            f"{sql_texto(r['descripcion'])}, {sql_texto(r['subnivel'])}, {indicador})"
         )
     lineas.append(",\n".join(valores))
-    lineas.append("on conflict (asignatura_id, codigo) do nothing;")
+    lineas.append(
+        "on conflict (asignatura_id, codigo) do update set\n"
+        "  descripcion = excluded.descripcion,\n"
+        "  subnivel = excluded.subnivel,\n"
+        "  indicador = excluded.indicador;"
+    )
     lineas.append("")
 
     with open(SALIDA_SQL, "w", encoding="utf-8") as f:

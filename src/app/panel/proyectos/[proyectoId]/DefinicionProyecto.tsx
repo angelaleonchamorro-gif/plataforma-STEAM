@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { guardarSeleccionDcd, elegirTema } from "./actions";
+import { guardarSeleccionDcd, elegirTema, guardarHabilidades } from "./actions";
 
 interface Asignatura {
   id: string;
@@ -15,6 +15,13 @@ interface Destreza {
   asignatura_id: string;
   codigo: string;
   descripcion: string;
+  indicador: string | null;
+}
+
+interface Habilidad {
+  componente: "tecnologia" | "ingenieria";
+  descripcion: string;
+  indicador: string | null;
 }
 
 interface TemaSugerido {
@@ -29,6 +36,7 @@ interface Props {
   asignaturas: Asignatura[];
   destrezas: Destreza[];
   seleccionInicial: { dcdId: string; esConexion: boolean }[];
+  habilidadesIniciales: Habilidad[];
 }
 
 export default function DefinicionProyecto({
@@ -36,6 +44,7 @@ export default function DefinicionProyecto({
   asignaturas,
   destrezas,
   seleccionInicial,
+  habilidadesIniciales,
 }: Props) {
   // --- Paso 1: selección de destrezas ---
   const [seleccion, setSeleccion] = useState<Map<string, boolean>>(
@@ -58,6 +67,11 @@ export default function DefinicionProyecto({
   const [filtro, setFiltro] = useState("");
   const [banner, setBanner] = useState<{ tipo: "exito" | "error"; texto: string } | null>(null);
   const [guardando, iniciarGuardado] = useTransition();
+
+  // --- Habilidades de Tecnología e Ingeniería (el docente las escribe) ---
+  const [habilidades, setHabilidades] = useState<Habilidad[]>(habilidadesIniciales);
+  const [bannerHabilidades, setBannerHabilidades] = useState<{ tipo: "exito" | "error"; texto: string } | null>(null);
+  const [guardandoHabilidades, iniciarGuardadoHabilidades] = useTransition();
 
   // --- Paso 2: tema con IA ---
   const [temas, setTemas] = useState<TemaSugerido[] | null>(null);
@@ -198,6 +212,7 @@ export default function DefinicionProyecto({
               <label
                 key={destreza.id}
                 className="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-black/[0.03]"
+                style={{ borderBottom: "1px solid var(--border-light)" }}
               >
                 <input
                   type="checkbox"
@@ -210,6 +225,11 @@ export default function DefinicionProyecto({
                     {destreza.codigo}
                   </span>{" "}
                   {destreza.descripcion}
+                  {destreza.indicador && (
+                    <span className="mt-1 block text-xs" style={{ color: "var(--text-subtle)" }}>
+                      <span className="font-semibold">Indicador:</span> {destreza.indicador}
+                    </span>
+                  )}
                 </span>
               </label>
             ))}
@@ -292,6 +312,128 @@ export default function DefinicionProyecto({
         >
           {guardando ? "Guardando…" : "Guardar destrezas"}
         </button>
+      </section>
+
+      {/* ---------- HABILIDADES DE TECNOLOGÍA E INGENIERÍA ---------- */}
+      <section>
+        <h2 className="text-xl font-bold">
+          <span style={{ color: "var(--accent-hover)" }}>1b.</span> Habilidades de Tecnología e Ingeniería
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+          El currículo no define destrezas para estos componentes: escríbelas tú con su indicador
+          para poder cuantificarlas (ej. &quot;Compila la programación de la placa Arduino&quot;).
+        </p>
+
+        {bannerHabilidades && (
+          <div className={`mt-4 ${bannerHabilidades.tipo === "exito" ? "banner-exito" : "banner-error"}`}>
+            {bannerHabilidades.texto}
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-col gap-3">
+          {habilidades.map((habilidad, i) => (
+            <div
+              key={i}
+              className="rounded-xl bg-white p-4"
+              style={{ border: "1px solid var(--border-light-md)" }}
+            >
+              <div className="flex flex-wrap items-start gap-3">
+                <select
+                  value={habilidad.componente}
+                  onChange={(e) =>
+                    setHabilidades((previas) =>
+                      previas.map((h, j) =>
+                        j === i ? { ...h, componente: e.target.value as Habilidad["componente"] } : h,
+                      ),
+                    )
+                  }
+                  className="rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[#F69E26]"
+                  style={{ borderColor: "var(--border-light-md)" }}
+                >
+                  <option value="tecnologia">Tecnología</option>
+                  <option value="ingenieria">Ingeniería</option>
+                </select>
+                <div className="min-w-60 flex-1">
+                  <input
+                    value={habilidad.descripcion}
+                    onChange={(e) =>
+                      setHabilidades((previas) =>
+                        previas.map((h, j) => (j === i ? { ...h, descripcion: e.target.value } : h)),
+                      )
+                    }
+                    placeholder="Habilidad (ej. Programar el sensor ultrasónico del prototipo)"
+                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[#F69E26]"
+                    style={{ borderColor: "var(--border-light-md)" }}
+                  />
+                  <input
+                    value={habilidad.indicador ?? ""}
+                    onChange={(e) =>
+                      setHabilidades((previas) =>
+                        previas.map((h, j) =>
+                          j === i ? { ...h, indicador: e.target.value || null } : h,
+                        ),
+                      )
+                    }
+                    placeholder="Indicador de evaluación (ej. Compila adecuadamente la programación de la placa)"
+                    className="mt-2 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:border-[#F69E26]"
+                    style={{ borderColor: "var(--border-light)" }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHabilidades((previas) => previas.filter((_, j) => j !== i))}
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--color-error)" }}
+                >
+                  Quitar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setHabilidades((previas) => [
+                ...previas,
+                { componente: previas.length % 2 === 0 ? "tecnologia" : "ingenieria", descripcion: "", indicador: null },
+              ])
+            }
+            className="rounded-full border px-5 py-2 text-sm font-semibold transition hover:bg-black/5"
+            style={{ borderColor: "var(--border-light-strong)" }}
+          >
+            + Agregar habilidad
+          </button>
+          {habilidades.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setBannerHabilidades(null);
+                iniciarGuardadoHabilidades(async () => {
+                  const resultado = await guardarHabilidades({
+                    proyectoId: proyecto.id,
+                    habilidades: habilidades.filter((h) => h.descripcion.trim().length >= 5),
+                  });
+                  if ("error" in resultado && resultado.error) {
+                    setBannerHabilidades({ tipo: "error", texto: resultado.error });
+                  } else {
+                    setBannerHabilidades({
+                      tipo: "exito",
+                      texto: "Habilidades guardadas: la IA las tomará en cuenta en los temas y la planificación.",
+                    });
+                  }
+                });
+              }}
+              disabled={guardandoHabilidades}
+              className="rounded-full px-5 py-2 text-sm font-semibold text-[#151E29] transition hover:brightness-95 disabled:opacity-50"
+              style={{ background: "var(--accent)" }}
+            >
+              {guardandoHabilidades ? "Guardando…" : "Guardar habilidades"}
+            </button>
+          )}
+        </div>
       </section>
 
       {/* ---------- PASO 2: TEMA ---------- */}

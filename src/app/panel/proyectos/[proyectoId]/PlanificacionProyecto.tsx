@@ -25,9 +25,12 @@ interface Actividad {
   semana_id: string | null;
   fase: FaseProyecto;
   dcd_id: string | null;
+  asignatura_id: string | null;
   titulo: string;
   instrucciones: string;
   criterio_evaluacion: string | null;
+  recursos: string | null;
+  evidencia: string | null;
   publicada: boolean;
   generada_por_ia: boolean;
 }
@@ -39,6 +42,7 @@ interface Props {
   semanas: Semana[];
   actividades: Actividad[];
   codigosDcd: Record<string, string>; // dcd_id → código (ej. CN.4.1.1)
+  asignaturas: { id: string; nombre: string }[];
 }
 
 const COLOR_FASE: Record<FaseProyecto, string> = {
@@ -61,13 +65,24 @@ export default function PlanificacionProyecto({
   semanas,
   actividades,
   codigosDcd,
+  asignaturas,
 }: Props) {
   const router = useRouter();
   const [generando, setGenerando] = useState(false);
   const [banner, setBanner] = useState<{ tipo: "exito" | "error"; texto: string } | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [formulario, setFormulario] = useState({ titulo: "", instrucciones: "", criterio: "" });
+  const [formulario, setFormulario] = useState({
+    titulo: "",
+    instrucciones: "",
+    criterio: "",
+    recursos: "",
+    evidencia: "",
+    asignaturaId: "" as string,
+  });
   const [pendiente, iniciarTransicion] = useTransition();
+
+  const nombreAsignatura = (id: string | null) =>
+    asignaturas.find((a) => a.id === id)?.nombre ?? null;
 
   const hayPlan = semanas.length > 0;
   const publicadas = actividades.filter((a) => a.publicada).length;
@@ -114,6 +129,9 @@ export default function PlanificacionProyecto({
       titulo: actividad.titulo,
       instrucciones: actividad.instrucciones,
       criterio: actividad.criterio_evaluacion ?? "",
+      recursos: actividad.recursos ?? "",
+      evidencia: actividad.evidencia ?? "",
+      asignaturaId: actividad.asignatura_id ?? "",
     });
   }
 
@@ -126,6 +144,9 @@ export default function PlanificacionProyecto({
         titulo: formulario.titulo,
         instrucciones: formulario.instrucciones,
         criterioEvaluacion: formulario.criterio || null,
+        recursos: formulario.recursos || null,
+        evidencia: formulario.evidencia || null,
+        asignaturaId: formulario.asignaturaId || null,
       });
       if ("error" in resultado && resultado.error) {
         setBanner({ tipo: "error", texto: resultado.error });
@@ -295,6 +316,44 @@ export default function PlanificacionProyecto({
                             style={{ borderColor: "var(--border-light-md)" }}
                           />
                         </label>
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                            Asignatura
+                            <select
+                              value={formulario.asignaturaId}
+                              onChange={(e) => setFormulario((f) => ({ ...f, asignaturaId: e.target.value }))}
+                              className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#F69E26]"
+                              style={{ borderColor: "var(--border-light-md)" }}
+                            >
+                              <option value="">Transversal</option>
+                              {asignaturas.map((a) => (
+                                <option key={a.id} value={a.id}>
+                                  {a.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                            Recursos
+                            <input
+                              value={formulario.recursos}
+                              onChange={(e) => setFormulario((f) => ({ ...f, recursos: e.target.value }))}
+                              placeholder="Cartón, tijeras, video…"
+                              className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#F69E26]"
+                              style={{ borderColor: "var(--border-light-md)" }}
+                            />
+                          </label>
+                          <label className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                            Evidencia
+                            <input
+                              value={formulario.evidencia}
+                              onChange={(e) => setFormulario((f) => ({ ...f, evidencia: e.target.value }))}
+                              placeholder="Bocetos, foro, encuesta…"
+                              className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#F69E26]"
+                              style={{ borderColor: "var(--border-light-md)" }}
+                            />
+                          </label>
+                        </div>
                         <div className="flex gap-2">
                           <button
                             onClick={guardarEdicion}
@@ -318,6 +377,14 @@ export default function PlanificacionProyecto({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="font-semibold">{actividad.titulo}</p>
                           <div className="flex items-center gap-2 text-xs font-semibold">
+                            {nombreAsignatura(actividad.asignatura_id) && (
+                              <span
+                                className="rounded-full px-2 py-0.5"
+                                style={{ background: "rgba(59,130,246,0.1)", color: "#2563eb" }}
+                              >
+                                {nombreAsignatura(actividad.asignatura_id)}
+                              </span>
+                            )}
                             {actividad.dcd_id && codigosDcd[actividad.dcd_id] && (
                               <span
                                 className="rounded-full px-2 py-0.5 font-mono"
@@ -341,11 +408,23 @@ export default function PlanificacionProyecto({
                         <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
                           {actividad.instrucciones}
                         </p>
-                        {actividad.criterio_evaluacion && (
-                          <p className="mt-2 text-xs" style={{ color: "var(--text-subtle)" }}>
-                            <span className="font-semibold">Evaluación:</span> {actividad.criterio_evaluacion}
-                          </p>
-                        )}
+                        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs" style={{ color: "var(--text-subtle)" }}>
+                          {actividad.recursos && (
+                            <span>
+                              <span className="font-semibold">Recursos:</span> {actividad.recursos}
+                            </span>
+                          )}
+                          {actividad.evidencia && (
+                            <span>
+                              <span className="font-semibold">Evidencia:</span> {actividad.evidencia}
+                            </span>
+                          )}
+                          {actividad.criterio_evaluacion && (
+                            <span>
+                              <span className="font-semibold">Evaluación:</span> {actividad.criterio_evaluacion}
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-3 flex gap-4 text-sm font-semibold">
                           <button onClick={() => abrirEdicion(actividad)} style={{ color: "var(--accent-hover)" }}>
                             Editar

@@ -66,6 +66,54 @@ export async function guardarSeleccionDcd(datos: z.infer<typeof esquemaSeleccion
   return { ok: true as const };
 }
 
+// Habilidades de Tecnología e Ingeniería que escribe el docente (el currículo
+// del Mineduc no define DCD para estos componentes STEAM).
+const esquemaHabilidades = z.object({
+  proyectoId: z.string().uuid(),
+  habilidades: z
+    .array(
+      z.object({
+        componente: z.enum(["tecnologia", "ingenieria"]),
+        descripcion: z.string().min(5).max(500),
+        indicador: z.string().max(500).nullable(),
+      }),
+    )
+    .max(20),
+});
+
+export async function guardarHabilidades(datos: z.infer<typeof esquemaHabilidades>) {
+  const validacion = esquemaHabilidades.safeParse(datos);
+  if (!validacion.success) {
+    return { error: "Cada habilidad necesita una descripción de al menos 5 caracteres." };
+  }
+
+  const contexto = await verificarDocenteDeProyecto(validacion.data.proyectoId);
+  if ("error" in contexto) return { error: contexto.error };
+  const { supabase, proyecto } = contexto;
+
+  const { error: errorBorrado } = await supabase
+    .from("proyecto_habilidades")
+    .delete()
+    .eq("proyecto_id", proyecto.id);
+  if (errorBorrado) return { error: `No se pudieron actualizar las habilidades. (${errorBorrado.message})` };
+
+  if (validacion.data.habilidades.length) {
+    const { error } = await supabase.from("proyecto_habilidades").insert(
+      validacion.data.habilidades.map((h, orden) => ({
+        proyecto_id: proyecto.id,
+        componente: h.componente,
+        descripcion: h.descripcion,
+        indicador: h.indicador,
+        orden,
+      })),
+    );
+    if (error) return { error: `No se pudieron guardar las habilidades. (${error.message})` };
+  }
+
+  revalidatePath(`/panel/proyectos/${proyecto.id}`);
+  return { ok: true as const };
+}
+
 const esquemaTema = z.object({
   proyectoId: z.string().uuid(),
   titulo: z.string().min(5).max(200),
@@ -113,6 +161,9 @@ const esquemaActividad = z.object({
   titulo: z.string().min(3).max(200),
   instrucciones: z.string().min(10).max(4000),
   criterioEvaluacion: z.string().max(2000).nullable(),
+  recursos: z.string().max(1000).nullable(),
+  evidencia: z.string().max(1000).nullable(),
+  asignaturaId: z.string().uuid().nullable(),
 });
 
 export async function actualizarActividad(datos: z.infer<typeof esquemaActividad>) {
@@ -129,6 +180,9 @@ export async function actualizarActividad(datos: z.infer<typeof esquemaActividad
       titulo: validacion.data.titulo,
       instrucciones: validacion.data.instrucciones,
       criterio_evaluacion: validacion.data.criterioEvaluacion,
+      recursos: validacion.data.recursos,
+      evidencia: validacion.data.evidencia,
+      asignatura_id: validacion.data.asignaturaId,
       generada_por_ia: false, // el docente la hizo suya al editarla
     })
     .eq("id", actividad.id);

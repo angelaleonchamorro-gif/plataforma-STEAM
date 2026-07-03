@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { crearProyecto } from "../actions";
 import CargaMasiva from "./CargaMasiva";
+import AgregarEstudiante from "./AgregarEstudiante";
 
 const ETIQUETA_ESTADO: Record<string, { texto: string; color: string }> = {
   definicion: { texto: "En definición", color: "var(--color-warning-text)" },
@@ -164,6 +165,7 @@ export default async function ClaseDetallePage({
           </div>
         )}
 
+        <AgregarEstudiante claseId={clase.id} />
         <CargaMasiva claseId={clase.id} />
       </section>
     </main>

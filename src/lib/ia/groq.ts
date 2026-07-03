@@ -33,6 +33,18 @@ export interface ContextoProyecto {
   edadReferencial: number;
   duracionSemanas: number;
   dcdPorAsignatura: { asignatura: string; destrezas: { codigo: string; descripcion: string }[] }[];
+  // Habilidades de Tecnología e Ingeniería escritas por el docente.
+  habilidades?: { componente: "tecnologia" | "ingenieria"; descripcion: string }[];
+}
+
+function bloqueHabilidades(contexto: ContextoProyecto): string {
+  if (!contexto.habilidades?.length) return "";
+  const tec = contexto.habilidades.filter((h) => h.componente === "tecnologia");
+  const ing = contexto.habilidades.filter((h) => h.componente === "ingenieria");
+  let bloque = "\n\nHabilidades definidas por el docente:";
+  if (tec.length) bloque += `\nTecnología:\n${tec.map((h) => `  - ${h.descripcion}`).join("\n")}`;
+  if (ing.length) bloque += `\nIngeniería:\n${ing.map((h) => `  - ${h.descripcion}`).join("\n")}`;
+  return bloque;
 }
 
 export async function sugerirTemas(contexto: ContextoProyecto): Promise<TemasSugeridos> {
@@ -69,7 +81,7 @@ Duración del proyecto: ${contexto.duracionSemanas} semanas
 
 Destrezas con criterios de desempeño seleccionadas:
 
-${listaDcd}
+${listaDcd}${bloqueHabilidades(contexto)}
 
 Sugiere 3 temas de proyecto STEAM.`,
       },
@@ -102,6 +114,9 @@ export const esquemaPlanificacion = z.object({
           instrucciones: z.string(),
           criterioEvaluacion: z.string(),
           codigoDcd: z.string().nullable(),
+          asignatura: z.string().nullable(),
+          recursos: z.string().nullable(),
+          evidencia: z.string().nullable(),
         }),
       ),
     }),
@@ -146,7 +161,10 @@ Reglas:
 - Materiales siempre fungibles y accesibles en Ecuador (cartón, botellas, sorbetes, etc.).
 - Lenguaje neutro y no comparativo entre estudiantes.
 - "codigoDcd" solo en actividades de indagación que desarrollan una DCD específica; en el resto, null.
-Respondes SOLO con JSON válido: {"semanas":[{"numero":1,"fase":"socializacion","objetivo":"...","descripcion":"...","actividades":[{"titulo":"...","instrucciones":"...","criterioEvaluacion":"...","codigoDcd":null}]}]}`,
+- "asignatura": a qué asignatura corresponde la actividad (usa EXACTAMENTE uno de los nombres de asignatura del contexto, o "Tecnología" / "Ingeniería" para actividades de esos componentes; null si es transversal).
+- "recursos": materiales o insumos concretos que necesita la actividad (ej. "Cartón, botellas plásticas, tijeras" o "Video sobre contaminación, cuestionario").
+- "evidencia": el producto verificable que entrega el estudiante (ej. "Participación en el foro", "Bocetos del prototipo", "Resultados de las encuestas", "Rutina de pensamiento Veo-pienso-me pregunto").
+Respondes SOLO con JSON válido: {"semanas":[{"numero":1,"fase":"socializacion","objetivo":"...","descripcion":"...","actividades":[{"titulo":"...","instrucciones":"...","criterioEvaluacion":"...","codigoDcd":null,"asignatura":"...","recursos":"...","evidencia":"..."}]}]}`,
       },
       {
         role: "user",
@@ -157,7 +175,7 @@ Duración total: ${contexto.duracionSemanas} semanas (genera exactamente ese nú
 
 Destrezas con criterios de desempeño:
 
-${listaDcd}
+${listaDcd}${bloqueHabilidades(contexto)}
 
 Genera la planificación semanal completa con sus actividades.`,
       },

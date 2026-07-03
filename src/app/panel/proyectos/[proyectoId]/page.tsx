@@ -43,6 +43,7 @@ export default async function ProyectoPage({
     { data: seleccion },
     { data: semanas },
     { data: actividades },
+    { data: habilidades },
   ] = await Promise.all([
     supabase
       .from("institucion_asignaturas")
@@ -51,7 +52,7 @@ export default async function ProyectoPage({
     supabase.from("asignaturas").select("id, codigo, nombre, es_principal"),
     supabase
       .from("dcd")
-      .select("id, asignatura_id, codigo, descripcion")
+      .select("id, asignatura_id, codigo, descripcion, indicador")
       .eq("subnivel", subnivel)
       .order("codigo"),
     supabase.from("proyecto_dcd").select("dcd_id, es_conexion").eq("proyecto_id", proyecto.id),
@@ -62,7 +63,14 @@ export default async function ProyectoPage({
       .order("numero_semana"),
     supabase
       .from("actividades")
-      .select("id, semana_id, fase, dcd_id, titulo, instrucciones, criterio_evaluacion, publicada, generada_por_ia")
+      .select(
+        "id, semana_id, fase, dcd_id, asignatura_id, titulo, instrucciones, criterio_evaluacion, recursos, evidencia, publicada, generada_por_ia",
+      )
+      .eq("proyecto_id", proyecto.id)
+      .order("orden"),
+    supabase
+      .from("proyecto_habilidades")
+      .select("componente, descripcion, indicador")
       .eq("proyecto_id", proyecto.id)
       .order("orden"),
   ]);
@@ -118,6 +126,11 @@ export default async function ProyectoPage({
           dcdId: s.dcd_id,
           esConexion: s.es_conexion,
         }))}
+        habilidadesIniciales={(habilidades ?? []).map((h) => ({
+          componente: h.componente as "tecnologia" | "ingenieria",
+          descripcion: h.descripcion,
+          indicador: h.indicador,
+        }))}
       />
 
       <PlanificacionProyecto
@@ -127,6 +140,7 @@ export default async function ProyectoPage({
         semanas={semanas ?? []}
         actividades={actividades ?? []}
         codigosDcd={Object.fromEntries((destrezas ?? []).map((d) => [d.id, d.codigo]))}
+        asignaturas={(asignaturas ?? []).map((a) => ({ id: a.id, nombre: a.nombre }))}
       />
     </main>
   );

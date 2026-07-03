@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { GRADOS } from "@/lib/curriculo";
+import { GRADOS, subnivelDeGrado } from "@/lib/curriculo";
 
 const esquemaClase = z.object({
   nombre: z.string().min(2).max(80),
@@ -60,17 +60,22 @@ export async function crearProyecto(claseId: string) {
   // Ownership: la RLS solo devuelve la clase si es del docente autenticado.
   const { data: clase } = await supabase
     .from("clases")
-    .select("id, institucion_id, docente_id")
+    .select("id, institucion_id, docente_id, grado")
     .eq("id", claseId)
     .maybeSingle();
   if (!clase || clase.docente_id !== user.id) redirect("/panel/clases");
 
-  // La duración viene de la definición institucional (meses → semanas).
-  const { data: config } = await supabase
-    .from("configuracion_institucional")
-    .select("duracion_meses")
-    .eq("institucion_id", clase.institucion_id)
-    .maybeSingle();
+  // La duración viene de la definición institucional DEL SUBNIVEL de la clase
+  // (meses → semanas).
+  const subnivel = subnivelDeGrado(clase.grado);
+  const { data: config } = subnivel
+    ? await supabase
+        .from("configuracion_subniveles")
+        .select("duracion_meses")
+        .eq("institucion_id", clase.institucion_id)
+        .eq("subnivel", subnivel)
+        .maybeSingle()
+    : { data: null };
   const semanas = Math.min(36, Math.max(4, (config?.duracion_meses ?? 1) * 4));
 
   const { data: proyecto, error } = await supabase

@@ -145,10 +145,14 @@ export async function POST(request: Request) {
   }
 
   if (rol === "directivo" && institucionId) {
-    await admin.from("configuracion_institucional").insert({
-      institucion_id: institucionId,
-      actualizado_por: usuario.user.id,
-    });
+    // Configuración por defecto para los 4 subniveles (el directivo la ajusta).
+    await admin.from("configuracion_subniveles").insert(
+      ["Elemental", "Media", "Superior", "BGU"].map((subnivel) => ({
+        institucion_id: institucionId!,
+        subnivel,
+        actualizado_por: usuario.user.id,
+      })),
+    );
   }
 
   if (rol === "estudiante" && claseId) {

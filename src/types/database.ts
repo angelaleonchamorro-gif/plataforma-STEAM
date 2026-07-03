@@ -60,9 +60,10 @@ export type Database = {
         };
         Relationships: [];
       };
-      configuracion_institucional: {
+      configuracion_subniveles: {
         Row: {
           institucion_id: string;
+          subnivel: string;
           frecuencia_proyectos: string;
           duracion_meses: number;
           actualizado_por: string | null;
@@ -70,6 +71,7 @@ export type Database = {
         };
         Insert: {
           institucion_id: string;
+          subnivel: string;
           frecuencia_proyectos?: string;
           duracion_meses?: number;
           actualizado_por?: string | null;
@@ -77,6 +79,7 @@ export type Database = {
         };
         Update: {
           institucion_id?: string;
+          subnivel?: string;
           frecuencia_proyectos?: string;
           duracion_meses?: number;
           actualizado_por?: string | null;

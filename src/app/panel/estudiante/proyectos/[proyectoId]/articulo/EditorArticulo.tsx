@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import TextareaSinPegar from "@/components/TextareaSinPegar";
 import { SECCIONES_ARTICULO, type SeccionesArticulo } from "@/lib/articulo";
 import { guardarArticulo } from "./actions";
 
@@ -96,7 +97,7 @@ export default function EditorArticulo({
               <p className="mt-0.5 text-xs" style={{ color: "var(--text-subtle)" }}>
                 {seccion.guia}
               </p>
-              <textarea
+              <TextareaSinPegar
                 value={secciones[seccion.clave] ?? ""}
                 onChange={(e) => actualizar(seccion.clave, e.target.value)}
                 rows={seccion.filas}

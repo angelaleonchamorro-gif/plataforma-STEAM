@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import TextareaSinPegar from "@/components/TextareaSinPegar";
 import { guardarAvance, entregarActividad } from "./actions";
 
 interface Actividad {
@@ -139,11 +140,11 @@ export default function EntregaActividad({ actividad, entrega, evidenciaUrl, est
 
           {editable ? (
             <>
-              <textarea
+              <TextareaSinPegar
                 value={contenido}
                 onChange={(e) => setContenido(e.target.value)}
                 rows={4}
-                placeholder="Escribe aquí tu trabajo, tus respuestas o lo que descubriste…"
+                placeholder="Escribe aquí tu trabajo, tus respuestas o lo que descubriste… (con tus propias palabras)"
                 className="mt-4 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[#F69E26]"
                 style={{ borderColor: "var(--border-light-md)" }}
               />

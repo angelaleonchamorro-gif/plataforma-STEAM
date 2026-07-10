@@ -1,14 +1,63 @@
 import Groq from "groq-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-// Motor de IA (Groq). Filosofía EDINUN: la IA SUGIERE, el docente revisa y
-// edita. Si Groq falla, se registra el error y la plataforma sigue funcionando
-// (degradación elegante) — nunca se bloquea el flujo del docente.
+// Motor de IA con doble proveedor. Filosofía EDINUN: la IA SUGIERE, el
+// docente revisa y edita. Si el proveedor falla, se registra el error y la
+// plataforma sigue funcionando (degradación elegante).
+//
+// Selección de proveedor:
+//   - IA_PROVEEDOR=anthropic|groq fuerza uno explícitamente.
+//   - Sin IA_PROVEEDOR: usa Anthropic si hay ANTHROPIC_API_KEY, si no Groq.
+export const PROVEEDOR_IA: "anthropic" | "groq" =
+  process.env.IA_PROVEEDOR === "groq"
+    ? "groq"
+    : process.env.IA_PROVEEDOR === "anthropic" || process.env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : "groq";
 
-export const MODELO_IA = "llama-3.3-70b-versatile";
+export const MODELO_IA =
+  PROVEEDOR_IA === "anthropic" ? "claude-haiku-4-5" : "llama-3.3-70b-versatile";
 
-function clienteGroq() {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Recorta fences de markdown y ruido alrededor del objeto JSON.
+function extraerJSON(texto: string): string {
+  const fence = texto.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const crudo = fence ? fence[1] : texto;
+  const inicio = crudo.indexOf("{");
+  const fin = crudo.lastIndexOf("}");
+  return inicio >= 0 && fin > inicio ? crudo.slice(inicio, fin + 1) : crudo;
+}
+
+async function completarJSON(
+  sistema: string,
+  usuario: string,
+  opciones: { temperature: number; maxTokens: number },
+): Promise<string> {
+  if (PROVEEDOR_IA === "anthropic") {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const respuesta = await anthropic.messages.create({
+      model: MODELO_IA,
+      max_tokens: opciones.maxTokens,
+      temperature: opciones.temperature,
+      system: sistema,
+      messages: [{ role: "user", content: usuario }],
+    });
+    const bloque = respuesta.content.find((b) => b.type === "text");
+    return bloque && bloque.type === "text" ? bloque.text : "{}";
+  }
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const completion = await groq.chat.completions.create({
+    model: MODELO_IA,
+    temperature: opciones.temperature,
+    max_tokens: opciones.maxTokens,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: sistema },
+      { role: "user", content: usuario },
+    ],
+  });
+  return completion.choices[0]?.message?.content ?? "{}";
 }
 
 // ---------- Sugerencia de 3 temas ----------
@@ -55,14 +104,7 @@ export async function sugerirTemas(contexto: ContextoProyecto): Promise<TemasSug
     )
     .join("\n\n");
 
-  const completion = await clienteGroq().chat.completions.create({
-    model: MODELO_IA,
-    temperature: 0.8,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `Eres un experto en pedagogía STEAM y en el currículo ecuatoriano del Ministerio de Educación.
+  const sistema = `Eres un experto en pedagogía STEAM y en el currículo ecuatoriano del Ministerio de Educación.
 Propones temas de proyectos escolares STEAM apropiados para la edad de los estudiantes, que integren las destrezas con criterios de desempeño (DCD) seleccionadas por el docente.
 Cada tema debe culminar en un PROTOTIPO construible con materiales fungibles accesibles en Ecuador.
 Respondes SIEMPRE en español y SOLO con JSON válido con esta forma exacta:
@@ -71,11 +113,9 @@ Respondes SIEMPRE en español y SOLO con JSON válido con esta forma exacta:
 - "descripcion": 2-3 oraciones de qué trata el proyecto.
 - "reto": el desafío concreto y medible que los estudiantes deben resolver con su prototipo.
 - "justificacion": cómo el tema integra las DCD seleccionadas.
-Devuelve exactamente 3 temas.`,
-      },
-      {
-        role: "user",
-        content: `Grado: ${contexto.grado}
+Devuelve exactamente 3 temas.`;
+
+  const usuario = `Grado: ${contexto.grado}
 Edad de los estudiantes: ${contexto.edadReferencial} años
 Duración del proyecto: ${contexto.duracionSemanas} semanas
 
@@ -83,13 +123,10 @@ Destrezas con criterios de desempeño seleccionadas:
 
 ${listaDcd}${bloqueHabilidades(contexto)}
 
-Sugiere 3 temas de proyecto STEAM.`,
-      },
-    ],
-  });
+Sugiere 3 temas de proyecto STEAM.`;
 
-  const crudo = completion.choices[0]?.message?.content ?? "{}";
-  return esquemaTemas.parse(JSON.parse(crudo));
+  const crudo = await completarJSON(sistema, usuario, { temperature: 0.8, maxTokens: 2048 });
+  return esquemaTemas.parse(JSON.parse(extraerJSON(crudo)));
 }
 
 // ---------- Planificación semanal + actividades por fase ----------
@@ -137,14 +174,7 @@ export async function generarPlanificacion(
 
   const esBachillerato = /bgu|bachillerato/i.test(contexto.grado);
 
-  const completion = await clienteGroq().chat.completions.create({
-    model: MODELO_IA,
-    temperature: 0.6,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `Eres un experto en pedagogía STEAM y en el currículo ecuatoriano.
+  const sistema = `Eres un experto en pedagogía STEAM y en el currículo ecuatoriano.
 Generas la planificación semanal completa de un proyecto STEAM, distribuida en 6 fases EN ESTE ORDEN:
 1. "socializacion": crear la situación que plantea el reto + preguntas de reflexión para generar desequilibrio cognitivo en los estudiantes.
 2. "indagacion": actividades que desarrollan las DCD seleccionadas, cada una con su actividad de evaluación (asigna el código de la DCD en "codigoDcd").
@@ -164,11 +194,9 @@ Reglas:
 - "asignatura": a qué asignatura corresponde la actividad (usa EXACTAMENTE uno de los nombres de asignatura del contexto, o "Tecnología" / "Ingeniería" para actividades de esos componentes; null si es transversal).
 - "recursos": materiales o insumos concretos que necesita la actividad (ej. "Cartón, botellas plásticas, tijeras" o "Video sobre contaminación, cuestionario").
 - "evidencia": el producto verificable que entrega el estudiante (ej. "Participación en el foro", "Bocetos del prototipo", "Resultados de las encuestas", "Rutina de pensamiento Veo-pienso-me pregunto").
-Respondes SOLO con JSON válido: {"semanas":[{"numero":1,"fase":"socializacion","objetivo":"...","descripcion":"...","actividades":[{"titulo":"...","instrucciones":"...","criterioEvaluacion":"...","codigoDcd":null,"asignatura":"...","recursos":"...","evidencia":"..."}]}]}`,
-      },
-      {
-        role: "user",
-        content: `Proyecto: ${contexto.titulo}
+Respondes SOLO con JSON válido: {"semanas":[{"numero":1,"fase":"socializacion","objetivo":"...","descripcion":"...","actividades":[{"titulo":"...","instrucciones":"...","criterioEvaluacion":"...","codigoDcd":null,"asignatura":"...","recursos":"...","evidencia":"..."}]}]}`;
+
+  const usuario = `Proyecto: ${contexto.titulo}
 Reto: ${contexto.reto}
 Grado: ${contexto.grado} (${contexto.edadReferencial} años)
 Duración total: ${contexto.duracionSemanas} semanas (genera exactamente ese número de semanas)
@@ -177,11 +205,8 @@ Destrezas con criterios de desempeño:
 
 ${listaDcd}${bloqueHabilidades(contexto)}
 
-Genera la planificación semanal completa con sus actividades.`,
-      },
-    ],
-  });
+Genera la planificación semanal completa con sus actividades.`;
 
-  const crudo = completion.choices[0]?.message?.content ?? "{}";
-  return esquemaPlanificacion.parse(JSON.parse(crudo));
+  const crudo = await completarJSON(sistema, usuario, { temperature: 0.6, maxTokens: 16000 });
+  return esquemaPlanificacion.parse(JSON.parse(extraerJSON(crudo)));
 }

@@ -89,8 +89,8 @@ export default async function ClasesPage() {
         <section className="mt-12">
           <h2 className="text-xl font-bold">🤝 Proyectos compartidos conmigo</h2>
           <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-            Proyectos interdisciplinarios donde participas como co-docente: da seguimiento y
-            califica a los estudiantes.
+            Proyectos interdisciplinarios donde participas como co-docente: revisa la información
+            del proyecto y sus actividades, mira el muro, da seguimiento y califica.
           </p>
           <div className="mt-4 grid gap-5 md:grid-cols-3">
             {compartidos!.map((proyecto) => {
@@ -98,7 +98,7 @@ export default async function ClasesPage() {
               return (
                 <Link
                   key={proyecto.id}
-                  href={`/panel/proyectos/${proyecto.id}/seguimiento`}
+                  href={`/panel/proyectos/${proyecto.id}`}
                   className="rounded-2xl bg-white p-6 transition hover:-translate-y-1"
                   style={{ border: "1px solid var(--accent-border)", background: "var(--accent-bg-subtle)" }}
                 >
@@ -107,7 +107,7 @@ export default async function ClasesPage() {
                     {clase ? `${clase.nombre} · ${clase.grado}` : ""}
                   </p>
                   <p className="mt-3 text-sm font-semibold" style={{ color: "var(--accent-hover)" }}>
-                    Ver seguimiento →
+                    Ver proyecto →
                   </p>
                 </Link>
               );

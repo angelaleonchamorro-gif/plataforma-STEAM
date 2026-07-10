@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { crearProyecto } from "../actions";
 import CargaMasiva from "./CargaMasiva";
 import AgregarEstudiante from "./AgregarEstudiante";
+import OpcionesClase from "./OpcionesClase";
 
 const ETIQUETA_ESTADO: Record<string, { texto: string; color: string }> = {
   definicion: { texto: "En definición", color: "var(--color-warning-text)" },
@@ -168,6 +169,17 @@ export default async function ClaseDetallePage({
         <AgregarEstudiante claseId={clase.id} />
         <CargaMasiva claseId={clase.id} />
       </section>
+
+      <OpcionesClase
+        clase={{
+          id: clase.id,
+          nombre: clase.nombre,
+          grado: clase.grado,
+          edad_referencial: clase.edad_referencial,
+        }}
+        totalProyectos={proyectos?.length ?? 0}
+        totalEstudiantes={estudiantes?.length ?? 0}
+      />
     </main>
   );
 }

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { subnivelDeGrado } from "@/lib/curriculo";
 import DefinicionProyecto from "./DefinicionProyecto";
 import PlanificacionProyecto from "./PlanificacionProyecto";
+import VistaCodocente from "./VistaCodocente";
+import EliminarProyecto from "./EliminarProyecto";
 
 export default async function ProyectoPage({
   params,
@@ -29,7 +31,16 @@ export default async function ProyectoPage({
     .select("id, nombre, grado, institucion_id, docente_id")
     .eq("id", proyecto.clase_id)
     .maybeSingle();
-  if (!clase || clase.docente_id !== user.id) redirect("/panel/clases");
+  if (!clase) redirect("/panel/clases");
+
+  // Acceso: docente líder (edita) o co-docente invitado (vista de lectura).
+  const esLider = clase.docente_id === user.id;
+  if (!esLider) {
+    const { data: esCodocente } = await supabase.rpc("fn_soy_codocente_de_proyecto", {
+      p_proyecto: proyecto.id,
+    });
+    if (!esCodocente) redirect("/panel/clases");
+  }
 
   const subnivel = subnivelDeGrado(clase.grado);
   if (!subnivel) redirect(`/panel/clases/${clase.id}`);
@@ -87,6 +98,60 @@ export default async function ProyectoPage({
       (a, b) =>
         Number(b.es_principal) - Number(a.es_principal) || a.nombre.localeCompare(b.nombre),
     );
+
+  // Co-docente: vista completa de SOLO LECTURA (información, actividades, muro).
+  if (!esLider) {
+    const nombreAsignatura = (id: string | null) =>
+      (asignaturas ?? []).find((a) => a.id === id)?.nombre ?? null;
+    const seleccionadas = (seleccion ?? [])
+      .map((s) => {
+        const destreza = (destrezas ?? []).find((d) => d.id === s.dcd_id);
+        if (!destreza) return null;
+        return {
+          id: destreza.id,
+          codigo: destreza.codigo,
+          descripcion: destreza.descripcion,
+          indicador: destreza.indicador,
+          asignatura: nombreAsignatura(destreza.asignatura_id) ?? "Otra",
+          esConexion: s.es_conexion,
+        };
+      })
+      .filter((d) => d !== null);
+
+    return (
+      <VistaCodocente
+        proyecto={{ id: proyecto.id, titulo: proyecto.titulo, reto: proyecto.reto }}
+        clase={{ nombre: clase.nombre, grado: clase.grado }}
+        destrezas={seleccionadas}
+        habilidades={habilidades ?? []}
+        semanas={semanas ?? []}
+        actividades={(actividades ?? []).map((a) => ({
+          id: a.id,
+          semana_id: a.semana_id,
+          titulo: a.titulo,
+          instrucciones: a.instrucciones,
+          criterio_evaluacion: a.criterio_evaluacion,
+          recursos: a.recursos,
+          evidencia: a.evidencia,
+          publicada: a.publicada,
+          asignaturaNombre: nombreAsignatura(a.asignatura_id),
+          codigoDcd: a.dcd_id
+            ? ((destrezas ?? []).find((d) => d.id === a.dcd_id)?.codigo ?? null)
+            : null,
+        }))}
+      />
+    );
+  }
+
+  // Para el aviso al eliminar: ¿ya hay trabajo de estudiantes en juego?
+  const idsActividades = (actividades ?? []).map((a) => a.id);
+  const { count: totalEntregas } = idsActividades.length
+    ? await supabase
+        .from("entregas")
+        .select("id", { count: "exact", head: true })
+        .in("actividad_id", idsActividades)
+    : { count: 0 };
+  const tieneEntregas = (totalEntregas ?? 0) > 0;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -166,6 +231,13 @@ export default async function ProyectoPage({
         actividades={actividades ?? []}
         codigosDcd={Object.fromEntries((destrezas ?? []).map((d) => [d.id, d.codigo]))}
         asignaturas={(asignaturas ?? []).map((a) => ({ id: a.id, nombre: a.nombre }))}
+      />
+
+      <EliminarProyecto
+        proyectoId={proyecto.id}
+        claseId={clase.id}
+        titulo={proyecto.titulo}
+        tieneEntregas={tieneEntregas}
       />
     </main>
   );

@@ -116,11 +116,11 @@ export default async function SeguimientoPage({
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <Link
-        href={esLider ? `/panel/proyectos/${proyecto.id}` : "/panel/clases"}
+        href={`/panel/proyectos/${proyecto.id}`}
         className="text-sm"
         style={{ color: "var(--text-muted)" }}
       >
-        ← {esLider ? proyecto.titulo ?? "Proyecto" : "Mis clases"}
+        ← {proyecto.titulo ?? "Proyecto"}
       </Link>
       <h1 className="mt-2 text-3xl font-bold">
         Seguimiento{esLider ? " del proyecto" : `: ${proyecto.titulo ?? "proyecto"}`}

@@ -138,9 +138,12 @@ export default function DefinicionProyecto({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ proyectoId: proyecto.id }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setBannerTema({ tipo: "error", texto: data.mensaje ?? "No se pudieron generar los temas." });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setBannerTema({
+          tipo: "error",
+          texto: data?.mensaje ?? "No se pudieron generar los temas. Intenta de nuevo.",
+        });
       } else {
         setTemas(data.temas);
       }

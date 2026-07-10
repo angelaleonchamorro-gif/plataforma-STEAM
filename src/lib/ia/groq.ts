@@ -131,10 +131,18 @@ Sugiere 3 temas de proyecto STEAM.`;
 
 // ---------- Planificación semanal + actividades por fase ----------
 
+// Validación TOLERANTE: los modelos a veces omiten claves opcionales o
+// devuelven null donde esperamos string — se normaliza en vez de rechazar
+// toda la planificación (nullish acepta null Y undefined).
+const textoONulo = z
+  .string()
+  .nullish()
+  .transform((v) => v ?? null);
+
 export const esquemaPlanificacion = z.object({
   semanas: z.array(
     z.object({
-      numero: z.number().int().min(1),
+      numero: z.coerce.number().int().min(1),
       fase: z.enum([
         "socializacion",
         "indagacion",
@@ -143,17 +151,26 @@ export const esquemaPlanificacion = z.object({
         "pruebas_rediseno",
         "divulgacion",
       ]),
-      objetivo: z.string(),
-      descripcion: z.string(),
+      objetivo: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? "Trabajo de la semana"),
+      descripcion: z
+        .string()
+        .nullish()
+        .transform((v) => v ?? ""),
       actividades: z.array(
         z.object({
           titulo: z.string(),
           instrucciones: z.string(),
-          criterioEvaluacion: z.string(),
-          codigoDcd: z.string().nullable(),
-          asignatura: z.string().nullable(),
-          recursos: z.string().nullable(),
-          evidencia: z.string().nullable(),
+          criterioEvaluacion: z
+            .string()
+            .nullish()
+            .transform((v) => v ?? ""),
+          codigoDcd: textoONulo,
+          asignatura: textoONulo,
+          recursos: textoONulo,
+          evidencia: textoONulo,
         }),
       ),
     }),
@@ -194,6 +211,8 @@ Reglas:
 - "asignatura": a qué asignatura corresponde la actividad (usa EXACTAMENTE uno de los nombres de asignatura del contexto, o "Tecnología" / "Ingeniería" para actividades de esos componentes; null si es transversal).
 - "recursos": materiales o insumos concretos que necesita la actividad (ej. "Cartón, botellas plásticas, tijeras" o "Video sobre contaminación, cuestionario").
 - "evidencia": el producto verificable que entrega el estudiante (ej. "Participación en el foro", "Bocetos del prototipo", "Resultados de las encuestas", "Rutina de pensamiento Veo-pienso-me pregunto").
+- IMPORTANTE: incluye SIEMPRE las 7 claves de cada actividad (titulo, instrucciones, criterioEvaluacion, codigoDcd, asignatura, recursos, evidencia); si una no aplica usa null, NUNCA omitas la clave.
+- Si el proyecto dura más de 16 semanas: usa exactamente 1 o 2 actividades por semana y redacta instrucciones concisas (máximo 2 oraciones), para que la respuesta no sea excesivamente larga.
 Respondes SOLO con JSON válido: {"semanas":[{"numero":1,"fase":"socializacion","objetivo":"...","descripcion":"...","actividades":[{"titulo":"...","instrucciones":"...","criterioEvaluacion":"...","codigoDcd":null,"asignatura":"...","recursos":"...","evidencia":"..."}]}]}`;
 
   const usuario = `Proyecto: ${contexto.titulo}
@@ -207,6 +226,23 @@ ${listaDcd}${bloqueHabilidades(contexto)}
 
 Genera la planificación semanal completa con sus actividades.`;
 
-  const crudo = await completarJSON(sistema, usuario, { temperature: 0.6, maxTokens: 16000 });
-  return esquemaPlanificacion.parse(JSON.parse(extraerJSON(crudo)));
+  // Reintento automático: si la primera respuesta no valida (JSON malformado
+  // o claves faltantes), se pide una vez más recordando el formato exacto.
+  let ultimoError: unknown;
+  for (let intento = 0; intento < 2; intento++) {
+    const recordatorio =
+      intento === 0
+        ? ""
+        : "\n\nRECUERDA: responde SOLO el objeto JSON, con TODAS las claves de cada actividad (usa null si no aplica) y sin texto adicional.";
+    try {
+      const crudo = await completarJSON(sistema, usuario + recordatorio, {
+        temperature: 0.6,
+        maxTokens: 16000,
+      });
+      return esquemaPlanificacion.parse(JSON.parse(extraerJSON(crudo)));
+    } catch (error) {
+      ultimoError = error;
+    }
+  }
+  throw ultimoError;
 }

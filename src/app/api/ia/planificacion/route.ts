@@ -6,8 +6,9 @@ import { generarPlanificacion, MODELO_IA, type ContextoProyecto } from "@/lib/ia
 
 const esquema = z.object({ proyectoId: z.string().uuid() });
 
-// La generación con Groq puede tardar; ampliar el límite del serverless de Vercel.
-export const maxDuration = 60;
+// La planificación de proyectos largos (hasta 36 semanas) puede tardar
+// varios minutos, más el reintento automático: límite máximo de Vercel.
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const supabase = await createClient();

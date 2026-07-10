@@ -96,9 +96,15 @@ export default function PlanificacionProyecto({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ proyectoId }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setBanner({ tipo: "error", texto: data.mensaje ?? "No se pudo generar la planificación." });
+      // Si Vercel corta por tiempo, la respuesta no es JSON: no romper por eso.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setBanner({
+          tipo: "error",
+          texto:
+            data?.mensaje ??
+            "La generación tardó más de lo esperado y se interrumpió. Vuelve a intentarlo: normalmente al segundo intento funciona.",
+        });
       } else {
         setBanner({
           tipo: "exito",

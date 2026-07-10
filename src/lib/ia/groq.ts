@@ -19,6 +19,10 @@ export const PROVEEDOR_IA: "anthropic" | "groq" =
 export const MODELO_IA =
   PROVEEDOR_IA === "anthropic" ? "claude-haiku-4-5" : "llama-3.3-70b-versatile";
 
+// Último modelo que respondió de verdad (puede diferir de MODELO_IA si el
+// proveedor principal falló y respondió el de respaldo).
+export let MODELO_USADO = MODELO_IA;
+
 // Recorta fences de markdown y ruido alrededor del objeto JSON.
 function extraerJSON(texto: string): string {
   const fence = texto.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -28,27 +32,32 @@ function extraerJSON(texto: string): string {
   return inicio >= 0 && fin > inicio ? crudo.slice(inicio, fin + 1) : crudo;
 }
 
-async function completarJSON(
+async function llamarAnthropic(
   sistema: string,
   usuario: string,
   opciones: { temperature: number; maxTokens: number },
 ): Promise<string> {
-  if (PROVEEDOR_IA === "anthropic") {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const respuesta = await anthropic.messages.create({
-      model: MODELO_IA,
-      max_tokens: opciones.maxTokens,
-      temperature: opciones.temperature,
-      system: sistema,
-      messages: [{ role: "user", content: usuario }],
-    });
-    const bloque = respuesta.content.find((b) => b.type === "text");
-    return bloque && bloque.type === "text" ? bloque.text : "{}";
-  }
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const respuesta = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: opciones.maxTokens,
+    temperature: opciones.temperature,
+    system: sistema,
+    messages: [{ role: "user", content: usuario }],
+  });
+  MODELO_USADO = "claude-haiku-4-5";
+  const bloque = respuesta.content.find((b) => b.type === "text");
+  return bloque && bloque.type === "text" ? bloque.text : "{}";
+}
 
+async function llamarGroq(
+  sistema: string,
+  usuario: string,
+  opciones: { temperature: number; maxTokens: number },
+): Promise<string> {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const completion = await groq.chat.completions.create({
-    model: MODELO_IA,
+    model: "llama-3.3-70b-versatile",
     temperature: opciones.temperature,
     max_tokens: opciones.maxTokens,
     response_format: { type: "json_object" },
@@ -57,7 +66,33 @@ async function completarJSON(
       { role: "user", content: usuario },
     ],
   });
+  MODELO_USADO = "llama-3.3-70b-versatile";
   return completion.choices[0]?.message?.content ?? "{}";
+}
+
+// Intenta el proveedor principal y, si falla (crédito agotado, límite,
+// caída), cae automáticamente al otro si su clave está configurada.
+async function completarJSON(
+  sistema: string,
+  usuario: string,
+  opciones: { temperature: number; maxTokens: number },
+): Promise<string> {
+  const orden: ("anthropic" | "groq")[] =
+    PROVEEDOR_IA === "anthropic" ? ["anthropic", "groq"] : ["groq", "anthropic"];
+
+  let ultimoError: unknown;
+  for (const proveedor of orden) {
+    if (proveedor === "anthropic" && !process.env.ANTHROPIC_API_KEY) continue;
+    if (proveedor === "groq" && !process.env.GROQ_API_KEY) continue;
+    try {
+      return proveedor === "anthropic"
+        ? await llamarAnthropic(sistema, usuario, opciones)
+        : await llamarGroq(sistema, usuario, opciones);
+    } catch (error) {
+      ultimoError = error;
+    }
+  }
+  throw ultimoError;
 }
 
 // ---------- Sugerencia de 3 temas ----------

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sugerirTemas, MODELO_IA, type ContextoProyecto } from "@/lib/ia/groq";
+import { sugerirTemas, MODELO_USADO, type ContextoProyecto } from "@/lib/ia/groq";
 
 const esquema = z.object({ proyectoId: z.string().uuid() });
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     void admin.from("generaciones_ia").insert({
       proyecto_id: proyecto.id,
       tipo: "temas",
-      modelo: MODELO_IA,
+      modelo: MODELO_USADO,
       respuesta: temas,
       estado: "ok",
     }).then(() => undefined, () => undefined);
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     void admin.from("generaciones_ia").insert({
       proyecto_id: proyecto.id,
       tipo: "temas",
-      modelo: MODELO_IA,
+      modelo: MODELO_USADO,
       estado: "error",
       error: error instanceof Error ? error.message : "desconocido",
     }).then(() => undefined, () => undefined);
